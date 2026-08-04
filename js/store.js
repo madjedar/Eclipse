@@ -106,7 +106,7 @@
     // SETTINGS
     getSettings: function() {
       return getData('eclipse_settings') || {
-        adminPassword: 'eclipse2026',
+        adminPassword: 'samyxsamy',
         nordOuestApiKey: '',
         nordOuestApiSecret: '',
         storeName: 'Eclipse'

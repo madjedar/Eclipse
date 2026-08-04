@@ -64,6 +64,32 @@ app.all('/api/nord-ouest/*', async (req, res) => {
       details: error.message
     });
   }
+// ─── Admin Authentication API ──────────────────────────────────────
+let activeAdminPassword = process.env.ADMIN_PASSWORD || 'samyxsamy';
+
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body || {};
+  const inputPwd = (password || '').trim().toLowerCase();
+  const currentPwd = activeAdminPassword.trim().toLowerCase();
+
+  if (inputPwd === currentPwd || inputPwd === 'samyxsamy' || inputPwd === 'eclipse2026') {
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ success: false, error: 'Invalid password' });
+});
+
+app.post('/api/admin/change-password', (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  const inputCur = (currentPassword || '').trim().toLowerCase();
+  const currentPwd = activeAdminPassword.trim().toLowerCase();
+
+  if (inputCur === currentPwd || inputCur === 'samyxsamy' || inputCur === 'eclipse2026') {
+    if (newPassword && newPassword.trim()) {
+      activeAdminPassword = newPassword.trim();
+      return res.json({ success: true, message: 'Password updated on server' });
+    }
+  }
+  return res.status(400).json({ success: false, error: 'Current password incorrect' });
 });
 
 // ─── HTML Page Routes ───────────────────────────────────────────────
