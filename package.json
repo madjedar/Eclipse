@@ -1,0 +1,17 @@
+{
+  "name": "eclipse-store",
+  "version": "1.0.0",
+  "description": "Eclipse — Algerian Unisex Streetwear E-Commerce",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "node-fetch": "^2.7.0"
+  },
+  "keywords": ["ecommerce", "algeria", "streetwear", "eclipse"],
+  "author": "Eclipse",
+  "license": "ISC"
+}

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclipse. — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="admin-login" class="admin-login">
+    <div class="admin-login__card">
+      <h1 class="admin-login__title">Eclipse.</h1>
+      <p style="text-align:center;color:var(--color-text-muted);margin-bottom:24px" data-i18n="adminDashboard">Admin Dashboard</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="login-password" placeholder="Enter admin password" required>
+        </div>
+        <button type="submit" class="btn btn--primary btn--full">Sign In</button>
+      </form>
+      <p id="login-error" style="color:var(--color-error);text-align:center;margin-top:16px;display:none">Invalid password</p>
+    </div>
+  </div>
+
+  <!-- Dashboard Layout -->
+  <div id="admin-app" class="admin-layout" style="display:none">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar__logo">Eclipse.</div>
+      <nav class="admin-sidebar__nav">
+        <a href="#dashboard" class="admin-sidebar__link admin-sidebar__link--active" data-page="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span data-i18n="adminDashboard">Dashboard</span>
+        </a>
+        <a href="#products" class="admin-sidebar__link" data-page="products">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <span data-i18n="products">Products</span>
+        </a>
+        <a href="#orders" class="admin-sidebar__link" data-page="orders">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          <span data-i18n="orders">Orders</span>
+        </a>
+        <a href="#yalidine" class="admin-sidebar__link" data-page="yalidine">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          <span data-i18n="logistics">Logistics</span>
+        </a>
+        <a href="#settings" class="admin-sidebar__link" data-page="settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span data-i18n="settings">Settings</span>
+        </a>
+      </nav>
+      <div style="padding:24px; display:flex; flex-direction:column; gap:10px; border-top:var(--border-thick);">
+        <a href="/" class="admin-sidebar__link" style="padding:8px 0; font-size:13px; border:none; box-shadow:none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Back to Store</span>
+        </a>
+        <a href="#" class="admin-sidebar__link" onclick="AdminApp.logout()" style="padding:8px 0; font-size:13px; border:none; box-shadow:none; color:var(--color-error);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Logout</span>
+        </a>
+      </div>
+    </aside>
+    <main class="admin-content" id="admin-content">
+      <!-- Pages rendered here by JS -->
+    </main>
+  </div>
+
+  <!-- Product Modal -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title" id="product-modal-title">Add Product</h3>
+        <button class="modal__close" onclick="AdminApp.closeProductModal()">×</button>
+      </div>
+      <div class="modal__body" id="product-modal-body">
+        <!-- Product form rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div class="modal-overlay" id="order-modal">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title" id="order-modal-title">Order Details</h3>
+        <button class="modal__close" onclick="AdminApp.closeOrderModal()">×</button>
+      </div>
+      <div class="modal__body" id="order-modal-body"></div>
+    </div>
+  </div>
+
+  <script src="/js/store.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/yalidine.js"></script>
+  <script src="/js/nord-ouest.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      EclipseStore.init();
+      AdminApp.init();
+    });
+  </script>
+</body>
+</html>

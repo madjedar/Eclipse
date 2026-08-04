@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclipse. — Home</title>
+  <meta name="description" content="Algerian unisex streetwear. Black & white minimalist, typography-driven.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <!-- MARQUEE TICKER BANNER -->
+  <div class="marquee-banner">
+    <div class="marquee-content">
+      ECLIPSE STREETWEAR &nbsp;•&nbsp; SUMMER BATCH 2026 &nbsp;•&nbsp; ALGERIAN UNISEX ESSENTIALS &nbsp;•&nbsp; CASH ON DELIVERY (58 WILAYAS) &nbsp;•&nbsp; ECLIPSE STREETWEAR &nbsp;•&nbsp; SUMMER BATCH 2026 &nbsp;•&nbsp; ALGERIAN UNISEX ESSENTIALS &nbsp;•&nbsp; CASH ON DELIVERY (58 WILAYAS) &nbsp;•&nbsp;
+    </div>
+  </div>
+
+  <!-- EDITORIAL HERO SECTION -->
+  <section class="hero">
+    <div class="hero__left">
+      <span class="hero__badge" data-i18n="heroBadge">[ COLLECTION BATCH 01 ]</span>
+      <h1 class="hero__title">
+        <span data-i18n="heroTitle1">UNISEX</span><br>
+        <span class="text-stroke" data-i18n="heroTitle2">STREETWEAR</span><br>
+        <span data-i18n="heroTitle3">MANIFESTO.</span>
+      </h1>
+      <p class="hero__subtitle" data-i18n="heroSubtitle">
+        Minimalist unisex garments designed for the modern Algerian aesthetic. High-grade cottons, oversized cuts, engineered for high endurance.
+      </p>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <a href="/shop.html" class="btn btn--primary btn--lg" data-i18n="exploreCollection">Explore Collection</a>
+        <a href="#fit-preview" class="btn btn--outline btn--lg" data-i18n="sizeFitGuide">Size & Fit Guide</a>
+      </div>
+    </div>
+    <div class="hero__right">
+      <img src="/img/summer1.jpg" alt="Eclipse Unisex Streetwear" class="hero__img" onerror="this.outerHTML='<div class=\\'placeholder-image\\'>ECLIPSE LOOKBOOK</div>'">
+    </div>
+  </section>
+
+  <!-- FEATURED DROPS SECTION -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h2 class="section-header__title" data-i18n="featuredDrops">FEATURED DROPS</h2>
+          <p class="section-header__subtitle" data-i18n="limitedRelease">Limited summer unisex release — Batch 01</p>
+        </div>
+        <a href="/shop.html" class="btn btn--outline btn--sm" data-i18n="viewAllDrops">View All Drops →</a>
+      </div>
+      <div class="product-grid" id="featured-grid"></div>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE SIZE & FIT PREVIEW SECTION -->
+  <section class="section" id="fit-preview" style="background: var(--color-surface);">
+    <div class="container">
+      <div class="fit-preview-box">
+        <span style="font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--color-text-muted);" data-i18n="unisexFitArchitecture">[ UNISEX FIT ARCHITECTURE ]</span>
+        <h2 style="font-size: 32px; font-weight: 900; text-transform: uppercase; margin: 12px 0 16px;" data-i18n="howGarmentsFit">How Our Garments Fit</h2>
+        <p style="color: var(--color-text-muted); max-width: 600px; font-size: 15px; line-height: 1.6;" data-i18n="fitOverview">
+          Our silhouettes are crafted to be fluidly unisex. Choose your preferred aesthetic profile below to see how our cuts drape on both male and female frames.
+        </p>
+
+        <div class="fit-preview-pills">
+          <button class="fit-pill active" onclick="switchFit(this, 'oversized')" data-i18n="oversizedFit">Oversized Fit (Recommended)</button>
+          <button class="fit-pill" onclick="switchFit(this, 'regular')" data-i18n="standardFit">Standard Fit</button>
+          <button class="fit-pill" onclick="switchFit(this, 'cropped')" data-i18n="boxyCrop">Boxy Crop</button>
+        </div>
+
+        <div id="fit-description" style="margin-top: 24px; padding: 20px; border: var(--border-thick); background: var(--color-bg); font-weight: 700; font-size: 14px;">
+          📌 <strong>Oversized Fit:</strong> Dropped shoulders, relaxed chest, extra length. Size down if you prefer a closer silhouette.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-container"></div>
+  <div id="cart-sidebar-container"></div>
+  <div id="notification-container"></div>
+
+  <script src="/js/store.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/home.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if(window.EclipseStore) EclipseStore.init();
+      if(window.EclipseApp) EclipseApp.initPage();
+    });
+
+    function switchFit(btn, fitType) {
+      document.querySelectorAll('.fit-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+
+      const desc = document.getElementById('fit-description');
+      if (fitType === 'oversized') {
+        desc.innerHTML = '📌 <strong>Oversized Fit:</strong> Dropped shoulders, relaxed chest, extra length. Size down if you prefer a closer silhouette.';
+      } else if (fitType === 'regular') {
+        desc.innerHTML = '📌 <strong>Standard Fit:</strong> True to size across chest and shoulders with a classic clean drop.';
+      } else if (fitType === 'cropped') {
+        desc.innerHTML = '📌 <strong>Boxy Crop:</strong> Wide chest cut with shortened hem for a modern structural look.';
+      }
+    }
+  </script>
+</body>
+</html>

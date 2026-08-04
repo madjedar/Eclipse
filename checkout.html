@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclipse. — Checkout</title>
+  <meta name="description" content="Complete your purchase with Cash on Delivery across Algeria.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="header-container"></div>
+  
+  <main class="container" style="padding: 40px 24px 90px;">
+    <h1 style="font-size: 32px; font-weight: 900; text-transform: uppercase; margin-bottom: 32px;" id="chk-title" data-i18n="checkout">Checkout</h1>
+    
+    <div class="checkout" id="checkout-container">
+      
+      <form class="checkout__form" id="checkout-form">
+        <h2 style="font-size: 20px; font-weight: 800; text-transform: uppercase; margin-bottom: 24px;" id="chk-shipping-info" data-i18n="shippingInfo">Shipping Information</h2>
+        
+        <div class="form-group">
+          <label class="form-label" id="lbl-name" data-i18n="fullName">Full Name *</label>
+          <input type="text" class="form-input" id="shipping-name" required placeholder="Ahmed...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-phone" data-i18n="phoneNumber">Phone Number *</label>
+          <input type="tel" class="form-input" id="shipping-phone" required placeholder="0555 12 34 56">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" id="lbl-wilaya" data-i18n="wilaya">Wilaya *</label>
+            <select class="form-select" id="shipping-wilaya" required>
+              <option value="" data-i18n="selectWilaya">Select Wilaya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-commune" data-i18n="commune">Commune *</label>
+            <select class="form-select" id="shipping-commune" required disabled>
+              <option value="" data-i18n="selectCommune">Select Commune</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- DUAL LOGISTICS COURIER SELECTION -->
+        <div class="form-group">
+          <label class="form-label" id="lbl-carrier" data-i18n="shippingCourier">Shipping Courier / Carrier *</label>
+          <div class="delivery-toggle">
+            <div class="delivery-option delivery-option--active" id="carrier-yalidine" onclick="setCarrierMode('Yalidine Express')">
+              🚚 <span data-i18n="yalidineExpress">Yalidine Express</span>
+            </div>
+            <div class="delivery-option" id="carrier-nord-ouest" onclick="setCarrierMode('Nord et Ouest')">
+              📦 <span data-i18n="nordEtOuest">Nord et Ouest (نوري ويست)</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" id="lbl-method" data-i18n="deliveryMethod">Delivery Method *</label>
+          <div class="delivery-toggle">
+            <div class="delivery-option delivery-option--active" id="del-home" onclick="setDeliveryMode('home')">
+              🏠 <span data-i18n="homeDelivery">Home Delivery</span>
+            </div>
+            <div class="delivery-option" id="del-desk" onclick="setDeliveryMode('desk')">
+              🏢 <span data-i18n="stopDesk">Stop Desk (Pickup)</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" id="lbl-address" data-i18n="detailedAddress">Detailed Address *</label>
+          <textarea class="form-textarea" id="shipping-address" required placeholder="Street name, building number..."></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn--primary btn--full btn--lg" id="submit-order-btn" data-i18n="placeOrder">Place Order (COD)</button>
+      </form>
+
+      <aside class="checkout__summary">
+        <h2 style="font-size: 20px; font-weight: 800; text-transform: uppercase; margin-bottom: 24px;" id="chk-order-summary" data-i18n="orderSummary">Order Summary</h2>
+        <div class="cart-items" id="checkout-items" style="padding: 0; margin-bottom: 24px;"></div>
+        
+        <div style="border-top: var(--border-thick); padding-top: 24px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: 600;">
+            <span id="chk-lbl-subtotal" data-i18n="subtotal">Subtotal</span>
+            <span id="checkout-subtotal">0 DA</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 24px; font-weight: 600; color: var(--color-text-muted);">
+            <span id="chk-lbl-shipping" data-i18n="shipping">Shipping</span>
+            <span id="checkout-shipping">Select Wilaya</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 900; border-top: var(--border-thick); padding-top: 24px;">
+            <span id="chk-lbl-total" data-i18n="total">Total</span>
+            <span id="checkout-total">0 DA</span>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+  <div id="cart-sidebar-container"></div>
+  <div id="notification-container"></div>
+  
+  <script src="/js/store.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/nord-ouest.js"></script>
+  <script src="/js/checkout.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if(window.EclipseStore) EclipseStore.init();
+      if(window.EclipseApp) {
+        EclipseApp.initPage();
+      }
+      if(window.CheckoutApp) CheckoutApp.init();
+    });
+  </script>
+</body>
+</html>

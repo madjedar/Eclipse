@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclipse. — Contact</title>
+  <meta name="description" content="Contact us">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; }
+    .contact-info { display: flex; flex-direction: column; gap: 32px; }
+    .info-block h3 { font-family: 'Outfit'; font-weight: 700; margin-bottom: 8px; font-size: 20px; }
+    .info-block p { color: var(--color-text-light); }
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
+    .form-input, .form-textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--color-border); font-family: 'Inter'; font-size: 16px; background: transparent; }
+    .form-textarea { min-height: 150px; resize: vertical; }
+    @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr; gap: 48px; } }
+  </style>
+</head>
+<body>
+  <div id="header-container"></div>
+  
+  <section class="page-hero">
+    <div class="container">
+      <h1 class="page-hero__title" data-i18n="contactTitle">Contact</h1>
+      <p class="page-hero__subtitle" data-i18n="contactSubtitle">Get in touch with us</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container contact-grid">
+      <div class="contact-info">
+        <div>
+          <h2 style="font-family:'Outfit';font-weight:800;font-size:32px;margin-bottom:16px;" data-i18n="contactHelp">We're here to help</h2>
+          <p style="line-height:1.6;color:var(--color-text-light);" data-i18n="contactHelpDesc">Have a question about your order, our products, or just want to say hi? Fill out the form or reach us via our channels below.</p>
+        </div>
+        
+        <div class="info-block">
+          <h3 data-i18n="email">Email</h3>
+          <p>hello@eclipse.dz</p>
+        </div>
+        
+        <div class="info-block">
+          <h3 data-i18n="phone">Phone</h3>
+          <p>+213 (0) 555 12 34 56</p>
+          <p style="font-size:14px;">Available Mon-Thu, Sun (9:00 - 17:00)</p>
+        </div>
+        
+        <div class="info-block">
+          <h3 data-i18n="socials">Socials</h3>
+          <p>@eclipse.dz on Instagram & TikTok</p>
+        </div>
+      </div>
+      
+      <div>
+        <form onsubmit="event.preventDefault(); window.EclipseApp?.showNotification(EclipseApp.t('msgSent') || 'Message sent successfully! We will get back to you soon.', 'success'); this.reset();">
+          <div class="form-group">
+            <label class="form-label" data-i18n="name">Name *</label>
+            <input type="text" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="email">Email *</label>
+            <input type="email" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="message">Message *</label>
+            <textarea class="form-textarea" required></textarea>
+          </div>
+          <button type="submit" class="btn btn--primary btn--lg" data-i18n="sendMessage">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-container"></div>
+  <div id="cart-sidebar-container"></div>
+  <div id="notification-container"></div>
+  
+  <script src="/js/store.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if(window.EclipseStore) EclipseStore.init();
+      if(window.EclipseApp) EclipseApp.initPage();
+    });
+  </script>
+</body>
+</html>

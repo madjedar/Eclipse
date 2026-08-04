@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclipse. — Product</title>
+  <meta name="description" content="Product details">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .pdp { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin: 40px 0 80px; }
+    .pdp-gallery { display: flex; flex-direction: column; gap: 16px; }
+    .pdp-gallery__main { width: 100%; aspect-ratio: 3/4; object-fit: cover; background: var(--color-surface); }
+    .pdp-gallery__thumbs { display: flex; gap: 16px; overflow-x: auto; }
+    .pdp-gallery__thumb { width: 80px; aspect-ratio: 3/4; object-fit: cover; cursor: pointer; border: 1px solid transparent; background: var(--color-surface); }
+    .pdp-gallery__thumb.active { border-color: var(--color-text); }
+    .pdp-info { display: flex; flex-direction: column; gap: 24px; }
+    .pdp-info__category { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-light); }
+    .pdp-info__title { font-family: 'Outfit'; font-size: 40px; font-weight: 800; text-transform: uppercase; line-height: 1; }
+    .pdp-info__price { font-size: 24px; font-weight: 500; }
+    .pdp-info__desc { color: var(--color-text-light); line-height: 1.6; }
+    .size-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+    .size-pill { border: 1px solid var(--color-border); padding: 12px 20px; cursor: pointer; background: none; font-family: 'Inter'; font-weight: 500; transition: all 0.2s; }
+    .size-pill.active { background: var(--color-text); color: var(--color-bg); border-color: var(--color-text); }
+    .size-pill--out { opacity: 0.5; text-decoration: line-through; cursor: not-allowed; }
+    .qty-stepper { display: inline-flex; border: 1px solid var(--color-border); align-items: center; }
+    .qty-btn { background: transparent; border: none; padding: 12px 16px; cursor: pointer; font-size: 18px; color: inherit; }
+    .qty-input { width: 40px; text-align: center; border: none; font-family: 'Inter'; font-size: 16px; -moz-appearance: textfield; background: transparent; color: inherit; }
+    .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .pdp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 768px) {
+      .pdp { grid-template-columns: 1fr; gap: 32px; }
+      .pdp-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="header-container"></div>
+  
+  <main class="container">
+    <div class="pdp" id="pdp-content">Loading...</div>
+  </main>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-header__title" data-i18n="youMayAlsoLike">You May Also Like</h2>
+      </div>
+      <div class="product-grid" id="related-grid"></div>
+    </div>
+  </section>
+
+  <div id="footer-container"></div>
+  <div id="cart-sidebar-container"></div>
+  <div id="notification-container"></div>
+  
+  <script src="/js/store.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/product.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if(window.EclipseStore) EclipseStore.init();
+      if(window.EclipseApp) EclipseApp.initPage();
+    });
+  </script>
+</body>
+</html>
