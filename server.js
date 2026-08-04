@@ -64,6 +64,8 @@ app.all('/api/nord-ouest/*', async (req, res) => {
       details: error.message
     });
   }
+});
+
 // ─── Admin Authentication API ──────────────────────────────────────
 let activeAdminPassword = process.env.ADMIN_PASSWORD || 'samyxsamy';
 
