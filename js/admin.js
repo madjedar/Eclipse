@@ -80,6 +80,20 @@
       this.showLogin();
     },
 
+    toggleMobileSidebar: function() {
+      const sidebar = document.querySelector('.admin-sidebar');
+      const overlay = document.getElementById('admin-sidebar-overlay');
+      if (sidebar) sidebar.classList.toggle('admin-sidebar--open');
+      if (overlay) overlay.classList.toggle('admin-sidebar-overlay--open');
+    },
+
+    closeMobileSidebar: function() {
+      const sidebar = document.querySelector('.admin-sidebar');
+      const overlay = document.getElementById('admin-sidebar-overlay');
+      if (sidebar) sidebar.classList.remove('admin-sidebar--open');
+      if (overlay) overlay.classList.remove('admin-sidebar-overlay--open');
+    },
+
     initRouter: function() {
       window.addEventListener('hashchange', () => {
         if (sessionStorage.getItem('eclipse_admin_logged_in')) {
@@ -89,6 +103,7 @@
     },
 
     route: function(hash) {
+      this.closeMobileSidebar();
       const page = hash.replace('#', '') || 'dashboard';
       
       document.querySelectorAll('.admin-sidebar__link').forEach(link => {
