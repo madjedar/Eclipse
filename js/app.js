@@ -342,7 +342,7 @@
           <div class="container footer__inner">
             <div>
               <div class="footer__brand">Eclipse.</div>
-              <p style="color:var(--color-text-muted); font-size:14px; line-height:1.6;">
+              <p style="color:rgba(255,255,255,0.75); font-size:14px; line-height:1.6;">
                 ${lang === 'ar' ? 'ملابس الشارع الجزائرية المصممة للجنسين.' : (lang === 'fr' ? 'Streetwear algérien unisex de haute qualité.' : 'Algerian Unisex Streetwear.')}
               </p>
             </div>

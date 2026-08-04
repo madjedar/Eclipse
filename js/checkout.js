@@ -1,21 +1,70 @@
 (function(window) {
+  const shippingRates = {
+    1:  { desk: 1000, home: 1500 },
+    2:  { desk: 500,  home: 800 },
+    3:  { desk: 600,  home: 1000 },
+    4:  { desk: 500,  home: 800 },
+    5:  { desk: 500,  home: 800 },
+    6:  { desk: 500,  home: 800 },
+    7:  { desk: 600,  home: 1000 },
+    8:  { desk: 800,  home: 1200 },
+    9:  { desk: 450,  home: 800 },
+    10: { desk: 500,  home: 800 },
+    11: { desk: 1500, home: 2000 },
+    12: { desk: 500,  home: 800 },
+    13: { desk: 600,  home: 900 },
+    14: { desk: 600,  home: 900 },
+    15: { desk: 500,  home: 800 },
+    16: { desk: 450,  home: 700 },
+    17: { desk: 600,  home: 1000 },
+    18: { desk: 500,  home: 800 },
+    19: { desk: 500,  home: 900 },
+    20: { desk: 600,  home: 900 },
+    21: { desk: 500,  home: 800 },
+    22: { desk: 500,  home: 800 },
+    23: { desk: 400,  home: 600 },
+    24: { desk: 450,  home: 700 },
+    25: { desk: 500,  home: 800 },
+    26: { desk: 500,  home: 800 },
+    27: { desk: 500,  home: 800 },
+    28: { desk: 500,  home: 800 },
+    29: { desk: 500,  home: 850 },
+    30: { desk: 700,  home: 1100 },
+    31: { desk: 500,  home: 800 },
+    32: { desk: 800,  home: 1200 },
+    33: { desk: 1500, home: 1900 },
+    34: { desk: 500,  home: 800 },
+    35: { desk: 450,  home: 800 },
+    36: { desk: 450,  home: 700 },
+    37: { desk: 1000, home: 1600 },
+    38: { desk: 500,  home: 800 },
+    39: { desk: 700,  home: 1100 },
+    40: { desk: 500,  home: 800 },
+    41: { desk: 500,  home: 800 },
+    42: { desk: 500,  home: 800 },
+    43: { desk: 500,  home: 800 },
+    44: { desk: 500,  home: 800 },
+    45: { desk: 800,  home: 1200 },
+    46: { desk: 500,  home: 800 },
+    47: { desk: 700,  home: 1100 },
+    48: { desk: 500,  home: 800 },
+    49: { desk: 1000, home: 1500 },
+    50: { desk: 1000, home: 1500 },
+    51: { desk: 600,  home: 1000 },
+    52: { desk: 800,  home: 1200 },
+    53: { desk: 1200, home: 1800 },
+    54: { desk: 1200, home: 1800 },
+    55: { desk: 700,  home: 1100 },
+    56: { desk: 1600, home: 2200 },
+    57: { desk: 700,  home: 1100 },
+    58: { desk: 700,  home: 1100 }
+  };
+
   const getShippingFee = (wilayaId, mode) => {
     const id = parseInt(wilayaId, 10);
     if (!id) return 0;
-
-    let base = 600;
-    const northWestWilayas = [9, 13, 14, 16, 22, 27, 29, 31, 42, 44, 46, 48];
-    if (northWestWilayas.includes(id)) {
-      base = 450;
-    } else if (id > 48) {
-      base = 1250;
-    } else if (id > 30) {
-      base = 850;
-    } else {
-      base = 550;
-    }
-
-    return mode === 'desk' ? Math.max(200, base - 200) : base;
+    const rates = shippingRates[id] || { desk: 600, home: 900 };
+    return mode === 'desk' ? rates.desk : rates.home;
   };
 
   const CheckoutApp = {
