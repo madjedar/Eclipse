@@ -4,7 +4,6 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const YALIDINE_BASE = 'https://api.yalidine.app/v1';
 const NORD_OUEST_BASE = 'https://api.nordetouest.com/v1';
 
 // Parse JSON bodies
@@ -15,57 +14,6 @@ app.use(express.static(path.join(__dirname), {
   extensions: ['html'],
   index: 'index.html'
 }));
-
-// ─── Yalidine API Proxy ─────────────────────────────────────────────
-app.all('/api/yalidine/*', async (req, res) => {
-  const endpoint = req.params[0];
-  const apiId = req.headers['x-api-id'];
-  const apiToken = req.headers['x-api-token'];
-
-  if (!apiId || !apiToken) {
-    return res.status(400).json({
-      error: 'Missing Yalidine API credentials. Configure them in Admin → Settings.'
-    });
-  }
-
-  try {
-    const queryString = new URLSearchParams(req.query).toString();
-    const url = queryString
-      ? `${YALIDINE_BASE}/${endpoint}?${queryString}`
-      : `${YALIDINE_BASE}/${endpoint}`;
-
-    const options = {
-      method: req.method,
-      headers: {
-        'X-API-ID': apiId,
-        'X-API-TOKEN': apiToken,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    };
-
-    if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
-      options.body = JSON.stringify(req.body);
-    }
-
-    const response = await fetch(url, options);
-    const contentType = response.headers.get('content-type') || '';
-
-    if (contentType.includes('application/json')) {
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } else {
-      const text = await response.text();
-      res.status(response.status).send(text);
-    }
-  } catch (error) {
-    console.error('[Yalidine Proxy Error]', error.message);
-    res.status(500).json({
-      error: 'Failed to connect to Yalidine API',
-      details: error.message
-    });
-  }
-});
 
 // ─── Nord et Ouest API Proxy ────────────────────────────────────────
 app.all('/api/nord-ouest/*', async (req, res) => {

@@ -1,50 +1,18 @@
 (function(window) {
-  const wilayas = [
-    { id: 1, name: "Adrar" }, { id: 2, name: "Chlef" }, { id: 3, name: "Laghouat" }, { id: 4, name: "Oum El Bouaghi" },
-    { id: 5, name: "Batna" }, { id: 6, name: "Béjaïa" }, { id: 7, name: "Biskra" }, { id: 8, name: "Béchar" },
-    { id: 9, name: "Blida" }, { id: 10, name: "Bouira" }, { id: 11, name: "Tamanrasset" }, { id: 12, name: "Tébessa" },
-    { id: 13, name: "Tlemcen" }, { id: 14, name: "Tiaret" }, { id: 15, name: "Tizi Ouzou" }, { id: 16, name: "Alger" },
-    { id: 17, name: "Djelfa" }, { id: 18, name: "Jijel" }, { id: 19, name: "Sétif" }, { id: 20, name: "Saïda" },
-    { id: 21, name: "Skikda" }, { id: 22, name: "Sidi Bel Abbès" }, { id: 23, name: "Annaba" }, { id: 24, name: "Guelma" },
-    { id: 25, name: "Constantine" }, { id: 26, name: "Médéa" }, { id: 27, name: "Mostaganem" }, { id: 28, name: "M'Sila" },
-    { id: 29, name: "Mascara" }, { id: 30, name: "Ouargla" }, { id: 31, name: "Oran" }, { id: 32, name: "El Bayadh" },
-    { id: 33, name: "Illizi" }, { id: 34, name: "Bordj Bou Arréridj" }, { id: 35, name: "Boumerdès" }, { id: 36, name: "El Tarf" },
-    { id: 37, name: "Tindouf" }, { id: 38, name: "Tissemsilt" }, { id: 39, name: "El Oued" }, { id: 40, name: "Khenchela" },
-    { id: 41, name: "Souk Ahras" }, { id: 42, name: "Tipaza" }, { id: 43, name: "Mila" }, { id: 44, name: "Aïn Defla" },
-    { id: 45, name: "Naâma" }, { id: 46, name: "Aïn Témouchent" }, { id: 47, name: "Ghardaïa" }, { id: 48, name: "Relizane" },
-    { id: 49, name: "Timimoun" }, { id: 50, name: "Bordj Badji Mokhtar" }, { id: 51, name: "Ouled Djellal" }, { id: 52, name: "Béni Abbès" },
-    { id: 53, name: "In Salah" }, { id: 54, name: "In Guezzam" }, { id: 55, name: "Touggourt" }, { id: 56, name: "Djanet" },
-    { id: 57, name: "El M'Ghair" }, { id: 58, name: "El Meniaa" }
-  ];
-
-  const getCommunes = (wilayaName) => {
-    return [wilayaName + " Centre", "Nouvelle Ville", "Zone Industrielle", "Quartier Est"];
-  };
-
-  // Dynamic fee calculation for Yalidine Express vs Nord et Ouest
-  const getShippingFee = (wilayaId, mode, carrier) => {
-    const id = parseInt(wilayaId);
+  const getShippingFee = (wilayaId, mode) => {
+    const id = parseInt(wilayaId, 10);
     if (!id) return 0;
 
     let base = 600;
-    if (carrier === 'Nord et Ouest') {
-      // Nord et Ouest rate structure (specialized for North/West Wilayas)
-      const northWestWilayas = [9, 13, 14, 16, 22, 27, 29, 31, 42, 44, 46, 48];
-      if (northWestWilayas.includes(id)) {
-        base = 450;
-      } else if (id > 48) {
-        base = 1250;
-      } else if (id > 30) {
-        base = 850;
-      } else {
-        base = 550;
-      }
+    const northWestWilayas = [9, 13, 14, 16, 22, 27, 29, 31, 42, 44, 46, 48];
+    if (northWestWilayas.includes(id)) {
+      base = 450;
+    } else if (id > 48) {
+      base = 1250;
+    } else if (id > 30) {
+      base = 850;
     } else {
-      // Yalidine Express rate structure
-      if (id === 16) base = 400;
-      else if (id === 9 || id === 35 || id === 42) base = 500;
-      else if (id > 48) base = 1200;
-      else if (id > 30) base = 800;
+      base = 550;
     }
 
     return mode === 'desk' ? Math.max(200, base - 200) : base;
@@ -52,7 +20,7 @@
 
   const CheckoutApp = {
     deliveryMode: 'home',
-    carrier: 'Yalidine Express',
+    carrier: 'Norris Logistics (Nord et Ouest)',
     shippingFee: 0,
     
     init: function() {
@@ -118,11 +86,12 @@
       const select = document.getElementById('shipping-wilaya');
       if (!select) return;
       
+      const wilayas = window.ALGERIA_DATA ? window.ALGERIA_DATA.getWilayas() : [];
       select.innerHTML = `<option value="">${window.EclipseApp.t('selectWilaya')}</option>`;
       wilayas.forEach(w => {
         const option = document.createElement('option');
         option.value = w.id;
-        option.textContent = `${w.id.toString().padStart(2, '0')} - ${w.name}`;
+        option.textContent = `${w.code} - ${w.name}`;
         select.appendChild(option);
       });
     },
@@ -140,8 +109,7 @@
         return;
       }
 
-      const wilayaName = wilayas.find(w => w.id == wilayaId).name;
-      const communes = getCommunes(wilayaName);
+      const communes = window.ALGERIA_DATA ? window.ALGERIA_DATA.getCommunes(wilayaId) : [];
       
       communeSelect.innerHTML = `<option value="">${t('selectCommune')}</option>`;
       communes.forEach(c => {
@@ -157,8 +125,23 @@
 
     setDeliveryMode: function(mode) {
       this.deliveryMode = mode;
-      document.getElementById('del-home').classList.toggle('delivery-option--active', mode === 'home');
-      document.getElementById('del-desk').classList.toggle('delivery-option--active', mode === 'desk');
+      const homeEl = document.getElementById('del-home');
+      const deskEl = document.getElementById('del-desk');
+      if (homeEl) homeEl.classList.toggle('delivery-option--active', mode === 'home');
+      if (deskEl) deskEl.classList.toggle('delivery-option--active', mode === 'desk');
+
+      const addressGroup = document.getElementById('address-group');
+      const addressInput = document.getElementById('shipping-address');
+
+      if (addressGroup && addressInput) {
+        if (mode === 'desk') {
+          addressGroup.style.display = 'none';
+          addressInput.removeAttribute('required');
+        } else {
+          addressGroup.style.display = 'block';
+          addressInput.setAttribute('required', 'true');
+        }
+      }
       
       const wilayaId = document.getElementById('shipping-wilaya').value;
       if (wilayaId) {
@@ -168,8 +151,7 @@
 
     setCarrierMode: function(carrier) {
       this.carrier = carrier;
-      document.getElementById('carrier-yalidine').classList.toggle('delivery-option--active', carrier === 'Yalidine Express');
-      document.getElementById('carrier-nord-ouest').classList.toggle('delivery-option--active', carrier === 'Nord et Ouest');
+      document.getElementById('carrier-nord-ouest')?.classList.toggle('delivery-option--active', carrier === 'Nord et Ouest');
       
       const wilayaId = document.getElementById('shipping-wilaya').value;
       if (wilayaId) {
@@ -178,7 +160,7 @@
     },
 
     updateShippingFee: function(wilayaId) {
-      this.shippingFee = getShippingFee(wilayaId, this.deliveryMode, this.carrier);
+      this.shippingFee = getShippingFee(wilayaId, this.deliveryMode);
       this.renderCartSummary();
     },
 
@@ -192,7 +174,8 @@
 
       setTimeout(() => {
         const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-        
+        const addressVal = document.getElementById('shipping-address').value;
+
         const orderData = {
           id: orderId,
           date: new Date().toISOString(),
@@ -204,18 +187,17 @@
             wilaya: document.getElementById('shipping-wilaya').options[document.getElementById('shipping-wilaya').selectedIndex].text,
             wilayaCode: document.getElementById('shipping-wilaya').value,
             commune: document.getElementById('shipping-commune').value,
-            address: document.getElementById('shipping-address').value,
+            address: this.deliveryMode === 'desk' ? (addressVal || 'Stop Desk (Pickup at Agency)') : addressVal,
             deliveryType: this.deliveryMode
           },
-          shippingCarrier: this.carrier,
+          shippingCarrier: 'Norris Logistics (Nord et Ouest)',
           deliveryMode: this.deliveryMode,
           items: window.EclipseStore.getCart(),
           subtotal: window.EclipseStore.getCartTotal(),
           shippingFee: this.shippingFee,
           total: window.EclipseStore.getCartTotal() + this.shippingFee,
           status: 'pending',
-          yalidineTracking: this.carrier === 'Yalidine Express' ? 'YAL-' + Math.floor(10000000 + Math.random() * 90000000) : null,
-          nordOuestTracking: this.carrier === 'Nord et Ouest' ? 'NO-' + Math.floor(10000000 + Math.random() * 90000000) : null
+          nordOuestTracking: 'NORRIS-' + Math.floor(10000000 + Math.random() * 90000000)
         };
 
         window.EclipseStore.saveOrder(orderData);

@@ -37,9 +37,8 @@
       deliveryMethod: "Delivery Method",
       homeDelivery: "Home Delivery",
       stopDesk: "Stop Desk (Pickup)",
-      shippingCourier: "Shipping Courier / Carrier",
-      yalidineExpress: "Yalidine Express",
-      nordEtOuest: "Nord et Ouest (نوري ويست)",
+      shippingCourier: "Delivery Service Partner",
+      nordEtOuest: "Norris Logistics (Nord et Ouest)",
       detailedAddress: "Detailed Address",
       placeOrder: "Place Order (Cash on Delivery)",
       orderSummary: "Order Summary",
@@ -115,9 +114,8 @@
       deliveryMethod: "Mode de Livraison",
       homeDelivery: "Livraison à Domicile",
       stopDesk: "Point de Retrait (Stop Desk)",
-      shippingCourier: "Transporteur de Livraison",
-      yalidineExpress: "Yalidine Express",
-      nordEtOuest: "Nord et Ouest (نوري ويست)",
+      shippingCourier: "Partenaire de Livraison",
+      nordEtOuest: "Norris Logistique (Nord et Ouest)",
       detailedAddress: "Adresse Détaillée",
       placeOrder: "Passer la Commande (Paiement à la Livraison)",
       orderSummary: "Résumé de la Commande",
@@ -194,8 +192,7 @@
       homeDelivery: "التوصيل للمنزل",
       stopDesk: "التوصيل للمكتب (Stop Desk)",
       shippingCourier: "شركة الشحن والتوصيل",
-      yalidineExpress: "ياليدين إكسبريس (Yalidine)",
-      nordEtOuest: "نورد إي أويست (نوري ويست)",
+      nordEtOuest: "نوريس لوجستيك (نورد إي أويست)",
       detailedAddress: "العنوان التفصيلي",
       placeOrder: "تأكيد الطلب (الدفع عند الاستلام)",
       orderSummary: "ملخص الطلب",
@@ -360,9 +357,9 @@
               <a href="/admin/index.html" class="footer__link">${t('adminDashboard')}</a>
             </div>
             <div>
-              <div class="footer__heading">Social</div>
-              <a href="#" class="footer__link">Instagram</a>
-              <a href="#" class="footer__link">TikTok</a>
+              <div class="footer__heading">Contact & Social</div>
+              <a href="https://www.instagram.com/eclipse.notasalways?igsh=MXRlN202cHNpeGpjYQ==&utm_source=qr" target="_blank" rel="noopener noreferrer" class="footer__link">Instagram (@eclipse.notasalways)</a>
+              <a href="mailto:Eclipsebrand213@gmail.com" class="footer__link">Eclipsebrand213@gmail.com</a>
             </div>
           </div>
         </footer>

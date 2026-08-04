@@ -72,8 +72,8 @@
           <button class="fit-pill" onclick="switchFit(this, 'cropped')" data-i18n="boxyCrop">Boxy Crop</button>
         </div>
 
-        <div id="fit-description" style="margin-top: 24px; padding: 20px; border: var(--border-thick); background: var(--color-bg); font-weight: 700; font-size: 14px;">
-          📌 <strong>Oversized Fit:</strong> Dropped shoulders, relaxed chest, extra length. Size down if you prefer a closer silhouette.
+        <div id="fit-diagram-container" style="margin-top: 32px; padding: 32px; border: var(--border-heavy); background: var(--color-bg); box-shadow: var(--shadow-line);">
+          <!-- Dynamic T-Shirt Technical Measurement Diagram Rendered Here -->
         </div>
       </div>
     </div>
@@ -90,20 +90,99 @@
     document.addEventListener('DOMContentLoaded', () => {
       if(window.EclipseStore) EclipseStore.init();
       if(window.EclipseApp) EclipseApp.initPage();
+      switchFit(document.querySelector('.fit-pill.active'), 'oversized');
     });
+
+    const fitData = {
+      oversized: {
+        title: "OVERSIZED FIT SPECIFICATIONS",
+        shoulder: "56 cm",
+        chest: "60 cm",
+        length: "76 cm",
+        sleeve: "24 cm",
+        armhole: "25 cm",
+        neck: "18 cm"
+      },
+      regular: {
+        title: "STANDARD FIT SPECIFICATIONS",
+        shoulder: "46 cm",
+        chest: "52 cm",
+        length: "70 cm",
+        sleeve: "21 cm",
+        armhole: "22 cm",
+        neck: "16 cm"
+      },
+      cropped: {
+        title: "BOXY CROP SPECIFICATIONS",
+        shoulder: "58 cm",
+        chest: "62 cm",
+        length: "62 cm",
+        sleeve: "23 cm",
+        armhole: "26 cm",
+        neck: "18 cm"
+      }
+    };
 
     function switchFit(btn, fitType) {
       document.querySelectorAll('.fit-pill').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
+      if(btn) btn.classList.add('active');
 
-      const desc = document.getElementById('fit-description');
-      if (fitType === 'oversized') {
-        desc.innerHTML = '📌 <strong>Oversized Fit:</strong> Dropped shoulders, relaxed chest, extra length. Size down if you prefer a closer silhouette.';
-      } else if (fitType === 'regular') {
-        desc.innerHTML = '📌 <strong>Standard Fit:</strong> True to size across chest and shoulders with a classic clean drop.';
-      } else if (fitType === 'cropped') {
-        desc.innerHTML = '📌 <strong>Boxy Crop:</strong> Wide chest cut with shortened hem for a modern structural look.';
-      }
+      const data = fitData[fitType] || fitData.oversized;
+      const container = document.getElementById('fit-diagram-container');
+      if(!container) return;
+
+      container.innerHTML = `
+        <div style="display: flex; justify-content: center; width: 100%;">
+          
+          <div style="position: relative; width: 100%; max-width: 500px; aspect-ratio: 1/1; background: #fff; padding: 20px;">
+            <img src="/assets/img/tshirt-measure.jpg" alt="T-Shirt Blueprint" style="width: 100%; height: 100%; object-fit: contain; opacity: 0.9;" />
+            
+            <!-- OVERLAYS -->
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #000;">
+              
+              <!-- Shoulder -->
+              <div style="position: absolute; top: 15%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; width: 45%;">
+                <div style="width: 100%; border-top: 2px dashed #000; position: relative;">
+                   <div style="position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-left: 2px solid #000; border-top: 2px solid #000; transform: rotate(-45deg);"></div>
+                   <div style="position: absolute; right: -5px; top: -5px; width: 10px; height: 10px; border-right: 2px solid #000; border-top: 2px solid #000; transform: rotate(45deg);"></div>
+                </div>
+                <div style="background: #fff; padding: 2px 8px; margin-top: -10px;">${data.shoulder}</div>
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted);">Shoulder</div>
+              </div>
+              
+              <!-- Chest -->
+              <div style="position: absolute; top: 55%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; width: 55%;">
+                <div style="width: 100%; border-top: 2px dashed #000; position: relative;">
+                   <div style="position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-left: 2px solid #000; border-top: 2px solid #000; transform: rotate(-45deg);"></div>
+                   <div style="position: absolute; right: -5px; top: -5px; width: 10px; height: 10px; border-right: 2px solid #000; border-top: 2px solid #000; transform: rotate(45deg);"></div>
+                </div>
+                <div style="background: #fff; padding: 2px 8px; margin-top: -10px;">${data.chest}</div>
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted);">Chest</div>
+              </div>
+
+              <!-- Length -->
+              <div style="position: absolute; top: 50%; left: 15%; transform: translateY(-50%); display: flex; align-items: center; height: 60%;">
+                <div style="height: 100%; border-left: 2px dashed #000; position: relative;">
+                   <div style="position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-left: 2px solid #000; border-top: 2px solid #000; transform: rotate(45deg);"></div>
+                   <div style="position: absolute; left: -5px; bottom: -5px; width: 10px; height: 10px; border-left: 2px solid #000; border-bottom: 2px solid #000; transform: rotate(-45deg);"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; margin-left: -20px; align-items: center; justify-content: center; background: #fff; padding: 4px 4px; border-radius: 4px;">
+                  <span style="writing-mode: vertical-rl; transform: rotate(180deg);">${data.length}</span>
+                </div>
+              </div>
+
+              <!-- Sleeve -->
+              <div style="position: absolute; top: 30%; right: 10%; transform: rotate(30deg); display: flex; flex-direction: column; align-items: center; width: 25%;">
+                <div style="width: 100%; border-top: 2px dashed #000; position: relative;">
+                   <div style="position: absolute; right: -5px; top: -5px; width: 10px; height: 10px; border-right: 2px solid #000; border-top: 2px solid #000; transform: rotate(45deg);"></div>
+                </div>
+                <div style="background: #fff; padding: 2px 8px; margin-top: -10px;">${data.sleeve}</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      `;
     }
   </script>
 </body>

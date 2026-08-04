@@ -94,11 +94,11 @@
       }
       setData('eclipse_orders', orders);
     },
-    updateOrderStatus: function(id, status, yalidineTracking = null) {
+    updateOrderStatus: function(id, status, tracking = null) {
       let order = this.getOrder(id);
       if (order) {
         order.status = status;
-        if (yalidineTracking) order.yalidineTracking = yalidineTracking;
+        if (tracking) order.nordOuestTracking = tracking;
         this.saveOrder(order);
       }
     },
@@ -107,8 +107,6 @@
     getSettings: function() {
       return getData('eclipse_settings') || {
         adminPassword: 'eclipse2026',
-        yalidineApiId: '',
-        yalidineApiToken: '',
         nordOuestApiKey: '',
         nordOuestApiSecret: '',
         storeName: 'Eclipse'

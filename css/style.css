@@ -72,24 +72,24 @@ body {
 /* TOPOGRAPHIC ANIMATED BACKGROUND LAYER */
 .topo-bg {
   position: fixed;
-  top: -40%;
-  left: -40%;
-  width: 180%;
-  height: 180%;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.35;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000"><g fill="none" stroke="%23000000" stroke-width="3.5" opacity="0.95"><path d="M 50 150 Q 200 30 380 200 T 700 160 T 950 350 C 850 550 650 480 500 650 Q 350 820 120 700 Z"/><path d="M 100 190 Q 220 80 370 230 T 660 200 T 890 370 C 800 520 620 450 480 600 Q 330 750 160 650 Z"/><path d="M 150 230 Q 240 130 360 260 T 620 240 T 830 390 C 750 490 590 420 460 550 Q 310 680 200 600 Z"/><path d="M 200 270 Q 260 180 350 290 T 580 280 T 770 410 C 700 460 560 390 440 500 Q 290 610 240 550 Z"/><path d="M 450 80 Q 650 240 580 420 T 320 780 T 650 920 C 850 840 920 580 760 320 Z"/><path d="M 490 120 Q 660 260 600 420 T 360 740 T 630 870 C 800 800 860 560 720 340 Z"/><path d="M 530 160 Q 670 280 620 420 T 400 700 T 610 820 C 750 760 800 540 680 360 Z"/><path d="M 750 50 C 900 200 820 400 680 550 S 380 880 240 800 S 100 450 300 250 Z"/><path d="M 720 90 C 850 220 780 390 650 520 S 390 820 270 750 S 140 440 320 270 Z"/><path d="M 690 130 C 800 240 740 380 620 490 S 400 760 300 700 S 180 430 340 290 Z"/></g></svg>');
+  opacity: 0.2;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000"><g fill="none" stroke="%23000000" stroke-width="12" opacity="0.95"><path d="M 50 150 Q 200 30 380 200 T 700 160 T 950 350 C 850 550 650 480 500 650 Q 350 820 120 700 Z"/><path d="M 100 190 Q 220 80 370 230 T 660 200 T 890 370 C 800 520 620 450 480 600 Q 330 750 160 650 Z"/><path d="M 150 230 Q 240 130 360 260 T 620 240 T 830 390 C 750 490 590 420 460 550 Q 310 680 200 600 Z"/><path d="M 200 270 Q 260 180 350 290 T 580 280 T 770 410 C 700 460 560 390 440 500 Q 290 610 240 550 Z"/><path d="M 450 80 Q 650 240 580 420 T 320 780 T 650 920 C 850 840 920 580 760 320 Z"/><path d="M 490 120 Q 660 260 600 420 T 360 740 T 630 870 C 800 800 860 560 720 340 Z"/><path d="M 530 160 Q 670 280 620 420 T 400 700 T 610 820 C 750 760 800 540 680 360 Z"/><path d="M 750 50 C 900 200 820 400 680 550 S 380 880 240 800 S 100 450 300 250 Z"/><path d="M 720 90 C 850 220 780 390 650 520 S 390 820 270 750 S 140 440 320 270 Z"/><path d="M 690 130 C 800 240 740 380 620 490 S 400 760 300 700 S 180 430 340 290 Z"/></g></svg>');
   background-repeat: repeat;
-  background-size: 1100px 1100px;
-  animation: topoNonStopFlow 35s linear infinite;
-  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.15));
+  background-size: 1500px 1500px;
+  animation: topoNonStopFlow 60s linear infinite;
+  mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
 }
 
 [data-theme='dark'] .topo-bg {
-  opacity: 0.42;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000"><g fill="none" stroke="%23ffffff" stroke-width="3.5" opacity="0.95"><path d="M 50 150 Q 200 30 380 200 T 700 160 T 950 350 C 850 550 650 480 500 650 Q 350 820 120 700 Z"/><path d="M 100 190 Q 220 80 370 230 T 660 200 T 890 370 C 800 520 620 450 480 600 Q 330 750 160 650 Z"/><path d="M 150 230 Q 240 130 360 260 T 620 240 T 830 390 C 750 490 590 420 460 550 Q 310 680 200 600 Z"/><path d="M 200 270 Q 260 180 350 290 T 580 280 T 770 410 C 700 460 560 390 440 500 Q 290 610 240 550 Z"/><path d="M 450 80 Q 650 240 580 420 T 320 780 T 650 920 C 850 840 920 580 760 320 Z"/><path d="M 490 120 Q 660 260 600 420 T 360 740 T 630 870 C 800 800 860 560 720 340 Z"/><path d="M 530 160 Q 670 280 620 420 T 400 700 T 610 820 C 750 760 800 540 680 360 Z"/><path d="M 750 50 C 900 200 820 400 680 550 S 380 880 240 800 S 100 450 300 250 Z"/><path d="M 720 90 C 850 220 780 390 650 520 S 390 820 270 750 S 140 440 320 270 Z"/><path d="M 690 130 C 800 240 740 380 620 490 S 400 760 300 700 S 180 430 340 290 Z"/></g></svg>');
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+  opacity: 0.15;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000"><g fill="none" stroke="%23ffffff" stroke-width="12" opacity="0.95"><path d="M 50 150 Q 200 30 380 200 T 700 160 T 950 350 C 850 550 650 480 500 650 Q 350 820 120 700 Z"/><path d="M 100 190 Q 220 80 370 230 T 660 200 T 890 370 C 800 520 620 450 480 600 Q 330 750 160 650 Z"/><path d="M 150 230 Q 240 130 360 260 T 620 240 T 830 390 C 750 490 590 420 460 550 Q 310 680 200 600 Z"/><path d="M 200 270 Q 260 180 350 290 T 580 280 T 770 410 C 700 460 560 390 440 500 Q 290 610 240 550 Z"/><path d="M 450 80 Q 650 240 580 420 T 320 780 T 650 920 C 850 840 920 580 760 320 Z"/><path d="M 490 120 Q 660 260 600 420 T 360 740 T 630 870 C 800 800 860 560 720 340 Z"/><path d="M 530 160 Q 670 280 620 420 T 400 700 T 610 820 C 750 760 800 540 680 360 Z"/><path d="M 750 50 C 900 200 820 400 680 550 S 380 880 240 800 S 100 450 300 250 Z"/><path d="M 720 90 C 850 220 780 390 650 520 S 390 820 270 750 S 140 440 320 270 Z"/><path d="M 690 130 C 800 240 740 380 620 490 S 400 760 300 700 S 180 430 340 290 Z"/></g></svg>');
 }
 
 .topo-glow-overlay {
@@ -98,21 +98,15 @@ body {
   pointer-events: none;
   z-index: 0;
   transition: background 0.15s ease-out;
-  animation: lightBeamPulse 8s ease-in-out infinite alternate;
+  /* Light beam pulse removed in favor of dynamic glowing background spotlight */
 }
 
 @keyframes topoNonStopFlow {
   0% {
     background-position: 0px 0px;
-    transform: rotate(0deg) scale(1.05);
-  }
-  50% {
-    background-position: 550px 550px;
-    transform: rotate(180deg) scale(1.1);
   }
   100% {
-    background-position: 1100px 1100px;
-    transform: rotate(360deg) scale(1.05);
+    background-position: 1500px 1500px;
   }
 }
 

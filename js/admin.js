@@ -85,8 +85,8 @@
         case 'orders':
           this.renderOrders(content);
           break;
-        case 'yalidine':
-          this.renderYalidine(content);
+        case 'norris':
+          this.renderNorris(content);
           break;
         case 'settings':
           this.renderSettings(content);
@@ -197,7 +197,7 @@
                       <td style="padding: 12px 0;">${o.id}</td>
                       <td style="padding: 12px 0;">${o.customer.firstName || o.customer.name} ${o.customer.lastName || ''}</td>
                       <td style="padding: 12px 0;">${o.customer.wilaya}</td>
-                      <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'Yalidine Express'}</span></td>
+                      <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'Norris Logistics'}</span></td>
                       <td style="padding: 12px 0;">${window.EclipseApp.formatPrice(o.total)}</td>
                       <td style="padding: 12px 0;">${this.renderStatusBadge(o.status)}</td>
                       <td style="padding: 12px 0; color:var(--color-text-muted); font-size:14px;">${this.formatDate(o.createdAt || o.date)}</td>
@@ -530,10 +530,10 @@
                   <td style="padding: 12px 0;">${o.customer.firstName || o.customer.name} ${o.customer.lastName || ''}</td>
                   <td style="padding: 12px 0;">${o.customer.phone}</td>
                   <td style="padding: 12px 0;">${o.customer.wilaya}</td>
-                  <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'Yalidine Express'}</span></td>
+                  <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'Norris Logistics (Nord et Ouest)'}</span></td>
                   <td style="padding: 12px 0;">${window.EclipseApp.formatPrice(o.total)}</td>
                   <td style="padding: 12px 0;">${this.renderStatusBadge(o.status)}</td>
-                  <td style="padding: 12px 0; font-family:monospace;">${o.yalidineTracking || o.nordOuestTracking || '-'}</td>
+                  <td style="padding: 12px 0; font-family:monospace;">${o.nordOuestTracking || '-'}</td>
                   <td style="padding: 12px 0; color:var(--color-text-muted); font-size:14px;">${this.formatDate(o.createdAt || o.date)}</td>
                   <td style="padding: 12px 0; text-align:right;">
                     <button class="btn" style="padding:6px 12px; font-size:12px;" onclick="AdminApp.openOrderModal('${o.id}')">View</button>
@@ -619,19 +619,9 @@
         </div>
 
         <div style="background:#f0f7ff; padding:16px; border-radius:8px;">
-          <h4 style="margin-bottom:12px;">Yalidine Integration</h4>
-          ${o.yalidineTracking ? `
-            <p>Tracking Number: <strong>${o.yalidineTracking}</strong></p>
-            <button class="btn" style="margin-top:12px; background:#fff; border:1px solid #ccc;" onclick="AdminApp.trackOrder('${o.yalidineTracking}')">Track on Yalidine</button>
-            <div id="tracking-timeline" style="margin-top:16px; display:none;"></div>
-          ` : `
-            <p style="color:var(--color-text-muted); font-size:14px; margin-bottom:12px;">Order not yet sent to Yalidine.</p>
-            ${o.status === 'confirmed' ? `
-              <button class="btn" style="background:#2563eb; color:#fff;" onclick="AdminApp.sendToYalidine('${o.id}')">Send to Yalidine</button>
-            ` : `
-              <p style="color:#d97706; font-size:14px;">Order must be 'Confirmed' to send to Yalidine.</p>
-            `}
-          `}
+          <h4 style="margin-bottom:12px;">Norris Logistics Integration</h4>
+          <p>Tracking Number: <strong>${o.nordOuestTracking || 'Pending Dispatch'}</strong></p>
+          <p style="color:var(--color-text-muted); font-size:13px; margin-top:6px;">Delivery Service: <strong>Norris Logistics (Nord et Ouest)</strong></p>
         </div>
       `;
       const modalEl = document.getElementById('order-modal');
@@ -641,7 +631,7 @@
     updateOrderStatus: function(orderId) {
       const newStatus = document.getElementById('update-status-select').value;
       const o = window.EclipseStore.getOrder(orderId);
-      window.EclipseStore.updateOrderStatus(orderId, newStatus, o.yalidineTracking);
+      window.EclipseStore.updateOrderStatus(orderId, newStatus, o.nordOuestTracking);
       if (window.EclipseApp && window.EclipseApp.showNotification) {
         window.EclipseApp.showNotification('Status updated', 'success');
       }
@@ -651,83 +641,17 @@
       }
     },
 
-    sendToYalidine: async function(orderId) {
-      const o = window.EclipseStore.getOrder(orderId);
-      if(!o) return;
-      try {
-        const result = await window.YalidineAPI.createParcel(o);
-        if(result.success) {
-          window.EclipseStore.updateOrderStatus(orderId, o.status, result.trackingNumber);
-          if (window.EclipseApp) window.EclipseApp.showNotification('Sent to Yalidine successfully!', 'success');
-          this.openOrderModal(orderId);
-          if (window.location.hash === '#orders') {
-            this.renderOrders(document.getElementById('admin-content'));
-          }
-        } else {
-          if (window.EclipseApp) window.EclipseApp.showNotification(result.message || 'Error sending to Yalidine', 'error');
-        }
-      } catch(err) {
-        if (window.EclipseApp) window.EclipseApp.showNotification('API Error', 'error');
-      }
-    },
-
-    trackOrder: async function(tracking) {
-      try {
-        const res = await window.YalidineAPI.getTrackingHistory(tracking);
-        const container = document.getElementById('tracking-timeline');
-        container.style.display = 'block';
-        if(res.success && res.history.length > 0) {
-          container.innerHTML = `<ul style="list-style:none; padding:0; margin:0; font-size:14px;">
-            ${res.history.map(h => `
-              <li style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #eee;">
-                <strong>${h.status}</strong> - ${this.formatDate(h.date)}
-                ${h.location ? `<br><small style="color:var(--color-text-muted);">${h.location}</small>` : ''}
-              </li>
-            `).join('')}
-          </ul>`;
-        } else {
-          container.innerHTML = '<p>No tracking history available.</p>';
-        }
-      } catch(e) {
-        if (window.EclipseApp) window.EclipseApp.showNotification('Failed to fetch tracking', 'error');
-      }
-    },
-
-    closeOrderModal: function() {
-      const modalEl = document.getElementById('order-modal');
-      modalEl.classList.remove('modal-overlay--open', 'active');
-    },
-
-    renderYalidine: function(container) {
+    renderNorris: function(container) {
       const s = window.EclipseStore.getSettings();
 
       const html = `
         <div class="admin-topbar">
-          <h1 class="admin-topbar__title">Logistics & Shipping Carriers</h1>
+          <h1 class="admin-topbar__title">Norris Logistics (Nord et Ouest)</h1>
         </div>
         
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:24px;">
-          <!-- YALIDINE CONFIG -->
-          <div style="background:#fff; border:var(--border-thick); padding: 24px; box-shadow:var(--shadow-line-sm);">
-            <h3 style="margin-bottom:16px;">🚚 Yalidine Express Config</h3>
-            <div class="form-group">
-              <label class="form-label">API ID</label>
-              <input type="text" class="form-input" id="y-api-id" value="${s.yalidineApiId || ''}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">API Token</label>
-              <input type="text" class="form-input" id="y-api-token" value="${s.yalidineApiToken || ''}">
-            </div>
-            <div style="display:flex; gap:12px;">
-              <button class="btn btn--primary" onclick="AdminApp.saveLogisticsSettings()">Save Yalidine Credentials</button>
-              <button class="btn" style="background:#e5e7eb;" onclick="AdminApp.testYalidine()">Test Connection</button>
-            </div>
-            <p id="y-test-result" style="margin-top:12px; font-weight:500;"></p>
-          </div>
-
-          <!-- NORD ET OUEST CONFIG -->
-          <div style="background:#fff; border:var(--border-thick); padding: 24px; box-shadow:var(--shadow-line-sm);">
-            <h3 style="margin-bottom:16px;">📦 Nord et Ouest (نوري ويست) Config</h3>
+        <div style="max-width:600px; margin-bottom:24px;">
+          <div style="background:#fff; border:var(--border-thick); padding: 28px; box-shadow:var(--shadow-line-sm);">
+            <h3 style="margin-bottom:16px;">📦 Norris Logistics API Settings</h3>
             <div class="form-group">
               <label class="form-label">API Key / Client ID</label>
               <input type="text" class="form-input" id="no-api-key" value="${s.nordOuestApiKey || ''}">
@@ -736,22 +660,8 @@
               <label class="form-label">Account Secret</label>
               <input type="text" class="form-input" id="no-api-secret" value="${s.nordOuestApiSecret || ''}">
             </div>
-            <div style="display:flex; gap:12px;">
-              <button class="btn btn--primary" onclick="AdminApp.saveLogisticsSettings()">Save Nord et Ouest Credentials</button>
-            </div>
+            <button class="btn btn--primary" onclick="AdminApp.saveLogisticsSettings()">Save Norris Credentials</button>
           </div>
-        </div>
-
-        <div style="background:#fff; border:var(--border-thick); padding: 24px; box-shadow:var(--shadow-line-sm);">
-          <h3 style="margin-bottom:16px;">Manual Package Tracking</h3>
-          <div class="form-group">
-            <label class="form-label">Enter Tracking Number (YAL-XXX or NO-XXX)</label>
-            <div style="display:flex; gap:12px; max-width:500px;">
-              <input type="text" class="form-input" id="manual-tracking" placeholder="e.g. YAL-123456 or NO-987654" style="flex:1;">
-              <button class="btn btn--primary" onclick="AdminApp.manualTrack()">Track Courier</button>
-            </div>
-          </div>
-          <div id="manual-track-result" style="margin-top:16px;"></div>
         </div>
       `;
       container.innerHTML = html;
@@ -759,93 +669,16 @@
 
     saveLogisticsSettings: function() {
       const s = window.EclipseStore.getSettings();
-      const yId = document.getElementById('y-api-id');
-      const yTok = document.getElementById('y-api-token');
       const noKey = document.getElementById('no-api-key');
       const noSec = document.getElementById('no-api-secret');
 
-      if(yId) s.yalidineApiId = yId.value;
-      if(yTok) s.yalidineApiToken = yTok.value;
       if(noKey) s.nordOuestApiKey = noKey.value;
       if(noSec) s.nordOuestApiSecret = noSec.value;
 
       window.EclipseStore.saveSettings(s);
-      if (window.EclipseApp) window.EclipseApp.showNotification('Logistics credentials saved successfully!', 'success');
+      if (window.EclipseApp) window.EclipseApp.showNotification('Norris Logistics credentials saved!', 'success');
     },
 
-    testYalidine: async function() {
-      const resEl = document.getElementById('y-test-result');
-      resEl.innerText = 'Testing...';
-      resEl.style.color = 'var(--color-text)';
-      try {
-        const res = await window.YalidineAPI.testConnection();
-        resEl.innerText = res.message;
-        resEl.style.color = res.success ? 'green' : 'red';
-      } catch(e) {
-        resEl.innerText = 'Connection failed';
-        resEl.style.color = 'red';
-      }
-    },
-
-    manualTrack: async function() {
-      const tracking = document.getElementById('manual-tracking').value;
-      if(!tracking) return;
-      const resEl = document.getElementById('manual-track-result');
-      resEl.innerHTML = '<p>Loading...</p>';
-      try {
-        const res = await window.YalidineAPI.getTrackingHistory(tracking);
-        if(res.success && res.history.length) {
-          resEl.innerHTML = `<ul style="list-style:none; padding:0; margin:0; font-size:14px;">
-            ${res.history.map(h => `
-              <li style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #eee;">
-                <strong>${h.status}</strong> - ${this.formatDate(h.date)}
-                ${h.location ? `<br><small style="color:var(--color-text-muted);">${h.location}</small>` : ''}
-              </li>
-            `).join('')}
-          </ul>`;
-        } else {
-          resEl.innerHTML = '<p style="color:red;">Tracking not found or no history available.</p>';
-        }
-      } catch(e) {
-        resEl.innerHTML = '<p style="color:red;">Error fetching tracking.</p>';
-      }
-    },
-
-    fetchYalidineFees: async function() {
-      const container = document.getElementById('y-fees-container');
-      container.innerHTML = '<p>Loading fees...</p>';
-      try {
-        const res = await window.YalidineAPI.fetchDeliveryFees();
-        if(res.success && res.fees) {
-          container.innerHTML = `
-            <table style="width:100%; border-collapse: collapse; text-align:left;">
-              <thead>
-                <tr style="color:var(--color-text-muted); font-size:14px; border-bottom:1px solid #eee;">
-                  <th style="padding-bottom:12px;">Wilaya</th>
-                  <th style="padding-bottom:12px;">Home Delivery</th>
-                  <th style="padding-bottom:12px;">Desk Delivery</th>
-                  <th style="padding-bottom:12px;">Return Fee</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${res.fees.map(f => `
-                  <tr style="border-bottom:1px solid #eee;">
-                    <td style="padding: 12px 0;">${f.wilaya_name}</td>
-                    <td style="padding: 12px 0;">${f.home_fee} DA</td>
-                    <td style="padding: 12px 0;">${f.desk_fee} DA</td>
-                    <td style="padding: 12px 0;">${f.return_fee} DA</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          `;
-        } else {
-          container.innerHTML = '<p style="color:red;">Failed to fetch fees.</p>';
-        }
-      } catch(e) {
-        container.innerHTML = '<p style="color:red;">Error fetching fees.</p>';
-      }
-    },
 
     renderSettings: function(container) {
       const s = window.EclipseStore.getSettings();
