@@ -117,8 +117,8 @@
     },
 
     init: function() {
-      // Force init to apply summer theme and unisex models
-      if (true) {
+      // Initialize with demo products only if the store is completely empty
+      if (localStorage.getItem('eclipse_products') === null) {
         const createSvg = (name, fill) => `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='800'><rect width='600' height='800' fill='${fill}'/><text x='300' y='380' text-anchor='middle' fill='%23FFF' font-family='sans-serif' font-size='20' font-weight='bold'>ECLIPSE</text><text x='300' y='420' text-anchor='middle' fill='%23CCC' font-family='sans-serif' font-size='14'>${name}</text></svg>`;
 
         
