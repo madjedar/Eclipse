@@ -1,10 +1,16 @@
 const express = require('express');
-const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs');
 
+// Safe cross-environment fetch handler
+const fetch = globalThis.fetch 
+  ? globalThis.fetch 
+  : (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+
+const ROOT_DIR = process.cwd();
+
 // Load .env configuration
-const envPath = path.join(__dirname, '.env');
+const envPath = path.join(ROOT_DIR, '.env');
 if (fs.existsSync(envPath)) {
   const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
   envLines.forEach(line => {
@@ -32,7 +38,7 @@ const NORD_OUEST_GUID = process.env.NORD_OUEST_GUID || 'N1L20U4L';
 app.use(express.json());
 
 // Serve static files from project root
-app.use(express.static(path.join(__dirname), {
+app.use(express.static(ROOT_DIR, {
   extensions: ['html'],
   index: 'index.html'
 }));
@@ -202,17 +208,23 @@ const pages = ['shop', 'product', 'checkout', 'about', 'contact'];
 
 pages.forEach(page => {
   app.get(`/${page}`, (req, res) => {
-    res.sendFile(path.join(__dirname, `${page}.html`));
+    const file = path.join(ROOT_DIR, `${page}.html`);
+    if (fs.existsSync(file)) return res.sendFile(file);
+    res.status(404).send('Page not found');
   });
 });
 
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin', 'index.html'));
+  const file = path.join(ROOT_DIR, 'admin', 'index.html');
+  if (fs.existsSync(file)) return res.sendFile(file);
+  res.status(404).send('Admin page not found');
 });
 
 // Fallback to index
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const file = path.join(ROOT_DIR, 'index.html');
+  if (fs.existsSync(file)) return res.sendFile(file);
+  res.status(404).send('Not found');
 });
 
 // Export Express app for Vercel / serverless deployments
