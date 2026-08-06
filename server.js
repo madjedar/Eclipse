@@ -186,16 +186,20 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ─── Start Server ───────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('');
-  console.log('  ┌──────────────────────────────────────────┐');
-  console.log('  │                                          │');
-  console.log('  │   ✦  E C L I P S E   S T O R E          │');
-  console.log('  │                                          │');
-  console.log(`  │   → Local:  http://localhost:${PORT}        │`);
-  console.log('  │   → Admin:  http://localhost:' + PORT + '/admin   │');
-  console.log('  │                                          │');
-  console.log('  └──────────────────────────────────────────┘');
-  console.log('');
-});
+// Export Express app for Vercel / serverless deployments
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('');
+    console.log('  ┌──────────────────────────────────────────┐');
+    console.log('  │                                          │');
+    console.log('  │   ✦  E C L I P S E   S T O R E          │');
+    console.log('  │                                          │');
+    console.log(`  │   → Local:  http://localhost:${PORT}        │`);
+    console.log('  │   → Admin:  http://localhost:' + PORT + '/admin   │');
+    console.log('  │                                          │');
+    console.log('  └──────────────────────────────────────────┘');
+    console.log('');
+  });
+}
+
+module.exports = app;
