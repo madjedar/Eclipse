@@ -1,10 +1,32 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
+const fs = require('fs');
+
+// Load .env configuration
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
+  envLines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const idx = trimmed.indexOf('=');
+      if (idx > 0) {
+        const key = trimmed.substring(0, idx).trim();
+        const val = trimmed.substring(idx + 1).trim().replace(/^["']|["']$/g, '');
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const NORD_OUEST_BASE = process.env.NORD_OUEST_BASE || 'https://app.noest-dz.com/api/v1';
+const NORD_OUEST_API_TOKEN = process.env.NORD_OUEST_API_TOKEN || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
+const NORD_OUEST_GUID = process.env.NORD_OUEST_GUID || 'N1L20U4L';
 
 // Parse JSON bodies
 app.use(express.json());
@@ -18,8 +40,8 @@ app.use(express.static(path.join(__dirname), {
 // ─── Nord et Ouest (NOEST Express) API Proxy ────────────────────────
 app.all('/api/nord-ouest/*', async (req, res) => {
   const endpoint = req.params[0];
-  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
-  const guid = req.headers['x-user-guid'] || req.headers['x-api-secret'] || 'N1L20U4L';
+  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || NORD_OUEST_API_TOKEN;
+  const guid = req.headers['x-user-guid'] || req.headers['x-api-secret'] || NORD_OUEST_GUID;
 
   try {
     const queryParams = new URLSearchParams(req.query);
