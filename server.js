@@ -4,7 +4,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const NORD_OUEST_BASE = 'https://api.nordetouest.com/v1';
+const NORD_OUEST_BASE = process.env.NORD_OUEST_BASE || 'https://app.noest-dz.com/api/v1';
 
 // Parse JSON bodies
 app.use(express.json());
@@ -15,39 +15,40 @@ app.use(express.static(path.join(__dirname), {
   index: 'index.html'
 }));
 
-// ─── Nord et Ouest API Proxy ────────────────────────────────────────
+// ─── Nord et Ouest (NOEST Express) API Proxy ────────────────────────
 app.all('/api/nord-ouest/*', async (req, res) => {
   const endpoint = req.params[0];
-  const apiKey = req.headers['x-api-key'];
-  const apiSecret = req.headers['x-api-secret'];
-
-  if (!apiKey) {
-    return res.status(400).json({
-      error: 'Missing Nord et Ouest API Key. Configure it in Admin → Settings.'
-    });
-  }
+  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
+  const guid = req.headers['x-user-guid'] || req.headers['x-api-secret'] || 'N1L20U4L';
 
   try {
-    const queryString = new URLSearchParams(req.query).toString();
-    const url = queryString
-      ? `${NORD_OUEST_BASE}/${endpoint}?${queryString}`
-      : `${NORD_OUEST_BASE}/${endpoint}`;
+    const queryParams = new URLSearchParams(req.query);
+    if (!queryParams.has('api_token')) queryParams.set('api_token', apiToken);
+    if (!queryParams.has('user_guid')) queryParams.set('user_guid', guid);
+
+    const targetUrl = `${NORD_OUEST_BASE}/${endpoint}?${queryParams.toString()}`;
 
     const options = {
       method: req.method,
       headers: {
-        'X-API-KEY': apiKey,
-        'X-API-SECRET': apiSecret || '',
+        'X-API-TOKEN': apiToken,
+        'X-USER-GUID': guid,
+        'Authorization': `Bearer ${apiToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
     };
 
     if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
-      options.body = JSON.stringify(req.body);
+      const payload = Object.assign({}, req.body, {
+        api_token: apiToken,
+        user_guid: guid,
+        guid: guid
+      });
+      options.body = JSON.stringify(payload);
     }
 
-    const response = await fetch(url, options);
+    const response = await fetch(targetUrl, options);
     const contentType = response.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
@@ -92,6 +93,79 @@ app.post('/api/admin/change-password', (req, res) => {
     }
   }
   return res.status(400).json({ success: false, error: 'Current password incorrect' });
+});
+const fs = require('fs');
+
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function readJsonFile(filename, defaultVal = []) {
+  const filePath = path.join(DATA_DIR, filename);
+  if (!fs.existsSync(filePath)) return defaultVal;
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch (e) {
+    return defaultVal;
+  }
+}
+
+function writeJsonFile(filename, data) {
+  const filePath = path.join(DATA_DIR, filename);
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error(`[FS Write Error ${filename}]`, e);
+    return false;
+  }
+}
+
+// ─── Products API Persistence ───────────────────────────────────────
+app.get('/api/store/products', (req, res) => {
+  const products = readJsonFile('products.json', null);
+  res.json({ success: true, products });
+});
+
+app.post('/api/store/products', (req, res) => {
+  const { products } = req.body || {};
+  if (Array.isArray(products)) {
+    writeJsonFile('products.json', products);
+    return res.json({ success: true, count: products.length });
+  }
+  return res.status(400).json({ success: false, error: 'Invalid products data' });
+});
+
+// ─── Orders API Persistence ─────────────────────────────────────────
+app.get('/api/store/orders', (req, res) => {
+  const orders = readJsonFile('orders.json', []);
+  res.json({ success: true, orders });
+});
+
+app.post('/api/store/orders', (req, res) => {
+  const { orders } = req.body || {};
+  if (Array.isArray(orders)) {
+    writeJsonFile('orders.json', orders);
+    return res.json({ success: true, count: orders.length });
+  }
+  return res.status(400).json({ success: false, error: 'Invalid orders data' });
+});
+
+// ─── Settings API Persistence ───────────────────────────────────────
+app.get('/api/store/settings', (req, res) => {
+  const settings = readJsonFile('settings.json', null);
+  res.json({ success: true, settings });
+});
+
+app.post('/api/store/settings', (req, res) => {
+  const { settings } = req.body || {};
+  if (settings && typeof settings === 'object') {
+    writeJsonFile('settings.json', settings);
+    return res.json({ success: true });
+  }
+  return res.status(400).json({ success: false, error: 'Invalid settings data' });
 });
 
 // ─── HTML Page Routes ───────────────────────────────────────────────

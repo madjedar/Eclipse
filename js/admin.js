@@ -397,6 +397,26 @@
               </div>
             </div>
 
+            <!-- COLOR OPTIONS PANEL -->
+            <div style="border: var(--border-thick); padding: 20px; background: #FFFFFF;">
+              <label class="form-label" style="margin-bottom:12px;">🎨 Available Product Colors</label>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;" id="color-checkboxes">
+                ${['Black', 'White', 'Beige', 'Grey', 'Navy', 'Olive', 'Cream', 'Red'].map(col => {
+                  const isChecked = p.colors && p.colors.includes(col);
+                  return `
+                    <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:2px solid #000; background:${isChecked ? '#000' : '#FFF'}; color:${isChecked ? '#FFF' : '#000'}; font-weight:700; font-size:12px; cursor:pointer; text-transform:uppercase;">
+                      <input type="checkbox" class="prod-color-checkbox" value="${col}" ${isChecked ? 'checked' : ''} style="display:none;" onchange="this.parentElement.style.background=this.checked?'#000':'#FFF'; this.parentElement.style.color=this.checked?'#FFF':'#000';">
+                      ${col}
+                    </label>
+                  `;
+                }).join('')}
+              </div>
+              <div>
+                <label class="form-label" style="font-size:11px;">Add Custom Colors (comma separated)</label>
+                <input type="text" class="form-input" id="prod-custom-colors" value="${(p.colors || []).filter(c => !['Black', 'White', 'Beige', 'Grey', 'Navy', 'Olive', 'Cream', 'Red'].includes(c)).join(', ')}" placeholder="e.g. Sage Green, Charcoal">
+              </div>
+            </div>
+
             <!-- SIZE COUNTER PANEL -->
             <div style="border: var(--border-thick); padding: 20px; background: #FFFFFF;">
               <label class="form-label" style="margin-bottom:12px;">🔢 Size Inventory Counters</label>
@@ -498,6 +518,14 @@
       const descVal = document.getElementById('prod-desc').value.trim();
       const priceVal = Number(document.getElementById('prod-price').value) || 0;
       const catVal = document.getElementById('prod-category').value;
+
+      // Collect colors
+      const selectedColorCheckboxes = Array.from(document.querySelectorAll('.prod-color-checkbox:checked')).map(cb => cb.value);
+      const customColorsInput = document.getElementById('prod-custom-colors')?.value || '';
+      const customColors = customColorsInput.split(',').map(c => c.trim()).filter(Boolean);
+      
+      const allColors = Array.from(new Set([...selectedColorCheckboxes, ...customColors]));
+      const finalColors = allColors.length > 0 ? allColors : ['Black'];
       
       const sizesObj = {
         S: Number(document.getElementById('size-S').value) || 0,
@@ -514,6 +542,7 @@
         price: priceVal,
         category: catVal,
         images: finalImages,
+        colors: finalColors,
         sizes: sizesObj,
         createdAt: productId ? window.EclipseStore.getProduct(productId).createdAt : new Date().toISOString()
       };
@@ -623,6 +652,7 @@
             <tr style="border-bottom:1px solid #eee; text-align:left; font-size:14px; color:var(--color-text-muted);">
               <th style="padding-bottom:8px;">Item</th>
               <th style="padding-bottom:8px;">Size</th>
+              <th style="padding-bottom:8px;">Color</th>
               <th style="padding-bottom:8px;">Qty</th>
               <th style="padding-bottom:8px; text-align:right;">Price</th>
             </tr>
@@ -632,7 +662,8 @@
               <tr style="border-bottom:1px solid #eee;">
                 <td style="padding:12px 0;">${item.title}</td>
                 <td style="padding:12px 0;">${item.size}</td>
-                <td style="padding:12px 0;">${item.qty}</td>
+                <td style="padding:12px 0;">${item.color || 'Standard'}</td>
+                <td style="padding:12px 0;">${item.qty || item.quantity}</td>
                 <td style="padding:12px 0; text-align:right;">${window.EclipseApp.formatPrice(item.price)}</td>
               </tr>
             `).join('')}
@@ -687,21 +718,25 @@
 
       const html = `
         <div class="admin-topbar">
-          <h1 class="admin-topbar__title">Norris Logistics (Nord et Ouest)</h1>
+          <h1 class="admin-topbar__title">NOEST Express (Nord et Ouest)</h1>
         </div>
         
         <div style="max-width:600px; margin-bottom:24px;">
           <div style="background:#fff; border:var(--border-thick); padding: 28px; box-shadow:var(--shadow-line-sm);">
-            <h3 style="margin-bottom:16px;">📦 Norris Logistics API Settings</h3>
+            <h3 style="margin-bottom:16px;">📦 NOEST Express API Settings</h3>
             <div class="form-group">
-              <label class="form-label">API Key / Client ID</label>
-              <input type="text" class="form-input" id="no-api-key" value="${s.nordOuestApiKey || ''}">
+              <label class="form-label">Base URL</label>
+              <input type="text" class="form-input" id="no-base-url" value="${s.nordOuestBaseUrl || 'https://app.noest-dz.com'}">
             </div>
             <div class="form-group">
-              <label class="form-label">Account Secret</label>
-              <input type="text" class="form-input" id="no-api-secret" value="${s.nordOuestApiSecret || ''}">
+              <label class="form-label">API Token</label>
+              <input type="text" class="form-input" id="no-api-token" value="${s.nordOuestApiToken || s.nordOuestApiKey || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi'}">
             </div>
-            <button class="btn btn--primary" onclick="AdminApp.saveLogisticsSettings()">Save Norris Credentials</button>
+            <div class="form-group">
+              <label class="form-label">Account GUID</label>
+              <input type="text" class="form-input" id="no-guid" value="${s.nordOuestGuid || s.nordOuestApiSecret || 'N1L20U4L'}">
+            </div>
+            <button class="btn btn--primary" onclick="AdminApp.saveLogisticsSettings()">Save NOEST Credentials</button>
           </div>
         </div>
       `;
@@ -710,14 +745,22 @@
 
     saveLogisticsSettings: function() {
       const s = window.EclipseStore.getSettings();
-      const noKey = document.getElementById('no-api-key');
-      const noSec = document.getElementById('no-api-secret');
+      const noUrl = document.getElementById('no-base-url');
+      const noToken = document.getElementById('no-api-token');
+      const noGuid = document.getElementById('no-guid');
 
-      if(noKey) s.nordOuestApiKey = noKey.value;
-      if(noSec) s.nordOuestApiSecret = noSec.value;
+      if(noUrl) s.nordOuestBaseUrl = noUrl.value.trim();
+      if(noToken) {
+        s.nordOuestApiToken = noToken.value.trim();
+        s.nordOuestApiKey = noToken.value.trim();
+      }
+      if(noGuid) {
+        s.nordOuestGuid = noGuid.value.trim();
+        s.nordOuestApiSecret = noGuid.value.trim();
+      }
 
       window.EclipseStore.saveSettings(s);
-      if (window.EclipseApp) window.EclipseApp.showNotification('Norris Logistics credentials saved!', 'success');
+      if (window.EclipseApp) window.EclipseApp.showNotification('NOEST Express credentials saved!', 'success');
     },
 
 

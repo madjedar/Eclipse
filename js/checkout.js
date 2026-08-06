@@ -105,7 +105,7 @@
             <img src="${item.image}" alt="${item.title}" class="cart-item__image" style="width:60px; height:80px;">
             <div class="cart-item__details">
               <div class="cart-item__title" style="font-size:12px;">${item.title}</div>
-              <div class="cart-item__meta">${t('size')}: ${item.size} | Qty: ${item.quantity}</div>
+              <div class="cart-item__meta">${t('size')}: ${item.size} ${item.color ? '| Color: ' + item.color : ''} | Qty: ${item.quantity}</div>
               <div class="cart-item__price">${window.EclipseApp.formatPrice(item.price * item.quantity)}</div>
             </div>
           </div>

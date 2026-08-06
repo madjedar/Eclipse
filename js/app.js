@@ -385,7 +385,7 @@
             <img src="${item.image}" alt="${item.title}" class="cart-item__image">
             <div class="cart-item__details">
               <div class="cart-item__title">${item.title}</div>
-              <div class="cart-item__meta">${t('size')}: ${item.size}</div>
+              <div class="cart-item__meta">${t('size')}: ${item.size} ${item.color ? '| Color: ' + item.color : ''}</div>
               <div class="cart-item__price">${this.formatPrice(item.price)}</div>
               <div class="cart-item__qty">
                 <button onclick="EclipseApp.changeQty(${index}, -1)">-</button>

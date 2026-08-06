@@ -1,9 +1,13 @@
 (function(window) {
   function getHeaders() {
     const settings = window.EclipseStore.getSettings();
+    const token = settings.nordOuestApiToken || settings.nordOuestApiKey || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
+    const guid = settings.nordOuestGuid || settings.nordOuestApiSecret || 'N1L20U4L';
     return {
-      'X-API-KEY': settings.nordOuestApiKey || '',
-      'X-API-SECRET': settings.nordOuestApiSecret || '',
+      'X-API-TOKEN': token,
+      'X-USER-GUID': guid,
+      'X-API-KEY': token,
+      'X-API-SECRET': guid,
       'Content-Type': 'application/json'
     };
   }

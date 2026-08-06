@@ -1,5 +1,6 @@
 let currentProduct = null;
 let selectedSize = null;
+let selectedColor = null;
 let quantity = 1;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // Default selected color to first available color
+  const productColors = (currentProduct.colors && currentProduct.colors.length) ? currentProduct.colors : ['Black'];
+  selectedColor = productColors[0];
+
   document.title = `Eclipse. — ${currentProduct.title}`;
   renderPDP();
   renderRelated();
@@ -28,6 +33,11 @@ function renderPDP() {
   
   const thumbsHtml = currentProduct.images.map((img, i) => 
     `<img src="${img}" class="pdp-gallery__thumb ${i===0?'active':''}" onclick="setMainImage('${img}', this)" onerror="this.outerHTML=''">`
+  ).join('');
+
+  const productColors = (currentProduct.colors && currentProduct.colors.length) ? currentProduct.colors : ['Black'];
+  const colorsHtml = productColors.map((col, i) => 
+    `<button class="color-pill ${col === selectedColor ? 'active' : ''}" onclick="selectColor(this, '${col}')">${col}</button>`
   ).join('');
 
   const sizesHtml = Object.entries(currentProduct.sizes).map(([size, stock]) => 
@@ -45,14 +55,19 @@ function renderPDP() {
       <div class="pdp-info__price">${window.EclipseApp ? EclipseApp.formatPrice(currentProduct.price) : currentProduct.price}</div>
       <p class="pdp-info__desc">${currentProduct.description}</p>
       
-      <div>
-        <div style="margin-bottom:8px;font-weight:500;">Size</div>
+      <div style="margin-bottom:16px;">
+        <div style="margin-bottom:8px;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:1px;">Available Colors:</div>
+        <div class="color-selector" style="display:flex; gap:8px; flex-wrap:wrap;">${colorsHtml}</div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="margin-bottom:8px;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:1px;">Size:</div>
         <div class="size-selector">${sizesHtml}</div>
         <div id="stock-display" style="margin-top:8px;font-size:14px;color:var(--color-text-light);">Select a size</div>
       </div>
       
       <div>
-        <div style="margin-bottom:8px;font-weight:500;">Quantity</div>
+        <div style="margin-bottom:8px;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:1px;">Quantity:</div>
         <div class="qty-stepper">
           <button class="qty-btn" onclick="updateQty(-1)">-</button>
           <input type="number" class="qty-input" id="qty-input" value="1" min="1" readonly>
@@ -60,7 +75,7 @@ function renderPDP() {
         </div>
       </div>
       
-      <div class="pdp-actions">
+      <div class="pdp-actions" style="margin-top:24px;">
         <button class="btn btn--outline btn--lg" id="add-to-cart-btn" disabled onclick="addAndCart()">Add to Cart</button>
         <button class="btn btn--primary btn--lg" id="buy-now-btn" disabled onclick="buyNow()">Buy Now</button>
       </div>
@@ -72,6 +87,12 @@ window.setMainImage = function(src, el) {
   document.getElementById('main-image').src = src;
   document.querySelectorAll('.pdp-gallery__thumb').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+}
+
+window.selectColor = function(btn, color) {
+  document.querySelectorAll('.color-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedColor = color;
 }
 
 window.selectSize = function(btn, size, stock) {
@@ -100,7 +121,7 @@ window.updateQty = function(change) {
 
 window.addAndCart = function() {
   if(!selectedSize) return;
-  window.EclipseStore.addToCart(currentProduct.id, selectedSize, quantity);
+  window.EclipseStore.addToCart(currentProduct.id, selectedSize, selectedColor, quantity);
   if(window.EclipseApp) {
     EclipseApp.updateCartBadge();
     EclipseApp.showNotification('Added to cart', 'success');
@@ -111,7 +132,7 @@ window.addAndCart = function() {
 
 window.buyNow = function() {
   if(!selectedSize) return;
-  window.EclipseStore.addToCart(currentProduct.id, selectedSize, quantity);
+  window.EclipseStore.addToCart(currentProduct.id, selectedSize, selectedColor, quantity);
   window.location.href = '/checkout';
 }
 
