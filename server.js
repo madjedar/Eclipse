@@ -118,9 +118,16 @@ app.post('/api/admin/change-password', (req, res) => {
 });
 const fs = require('fs');
 
-const DATA_DIR = path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+const DATA_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) 
+  ? path.join('/tmp', 'data') 
+  : path.join(__dirname, 'data');
+
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('[Data Dir Warning]', e.message);
 }
 
 function readJsonFile(filename, defaultVal = []) {
