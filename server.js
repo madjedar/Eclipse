@@ -2,10 +2,15 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 
-// Safe cross-environment fetch handler
-const fetch = globalThis.fetch 
-  ? globalThis.fetch 
-  : (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+// Robust cross-environment fetch handler
+let fetch = globalThis.fetch;
+if (!fetch) {
+  try {
+    fetch = require('node-fetch');
+  } catch (e) {
+    fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+  }
+}
 
 const ROOT_DIR = process.cwd();
 
@@ -227,8 +232,8 @@ app.get('*', (req, res) => {
   res.status(404).send('Not found');
 });
 
-// Export Express app for Vercel / serverless deployments
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// Export Express app for Vercel / serverless deployments while listening on Render / local
+if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log('');
     console.log('  ┌──────────────────────────────────────────┐');
