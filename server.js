@@ -234,7 +234,10 @@ app.post('/api/contact', async (req, res) => {
     if (user && pass) {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user, pass }
+        auth: { user, pass },
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 5000
       });
 
       await transporter.sendMail({
