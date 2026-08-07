@@ -255,7 +255,7 @@ app.post('/api/contact', async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     console.error('Email send error:', err);
-    return res.json({ success: true, warning: 'Email failed to send, but message was saved.' });
+    return res.json({ success: true, warning: `Google blocked the email. Check your App Password. (Error: ${err.message})` });
   }
 });
 
