@@ -210,6 +210,52 @@ app.post('/api/store/settings', (req, res) => {
   return res.status(400).json({ success: false, error: 'Invalid settings data' });
 });
 
+// ─── Contact Form API ───────────────────────────────────────────────
+app.post('/api/contact', async (req, res) => {
+  const { name, email, message } = req.body;
+
+  // Log to a messages.json file as a backup
+  const messages = readJsonFile('messages.json', []);
+  messages.push({
+    id: Date.now().toString(),
+    name,
+    email,
+    message,
+    date: new Date().toISOString()
+  });
+  writeJsonFile('messages.json', messages);
+
+  // Send via Nodemailer if env vars are present
+  try {
+    const nodemailer = require('nodemailer');
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+    
+    if (user && pass) {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass }
+      });
+
+      await transporter.sendMail({
+        from: `"${name}" <${user}>`,
+        replyTo: email,
+        to: 'Eclipsebrand213@gmail.com',
+        subject: `New Contact Message from ${name} (Eclipse Store)`,
+        text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
+      });
+      console.log('Contact email sent successfully.');
+    } else {
+      console.log('No EMAIL_USER or EMAIL_PASS in .env. Message saved to messages.json only.');
+    }
+    
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Email send error:', err);
+    return res.json({ success: true, warning: 'Email failed to send, but message was saved.' });
+  }
+});
+
 // ─── HTML Page Routes ───────────────────────────────────────────────
 const pages = ['shop', 'product', 'checkout', 'about', 'contact'];
 

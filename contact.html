@@ -54,20 +54,20 @@
       </div>
       
       <div>
-        <form onsubmit="event.preventDefault(); window.EclipseApp?.showNotification(EclipseApp.t('msgSent') || 'Message sent successfully! We will get back to you soon.', 'success'); this.reset();">
+        <form id="contact-form">
           <div class="form-group">
             <label class="form-label" data-i18n="name">Name *</label>
-            <input type="text" class="form-input" required>
+            <input type="text" id="contact-name" class="form-input" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="email">Email *</label>
-            <input type="email" class="form-input" required>
+            <input type="email" id="contact-email" class="form-input" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="message">Message *</label>
-            <textarea class="form-textarea" required></textarea>
+            <textarea id="contact-message" class="form-textarea" required></textarea>
           </div>
-          <button type="submit" class="btn btn--primary btn--lg" data-i18n="sendMessage">Send Message</button>
+          <button type="submit" id="contact-submit" class="btn btn--primary btn--lg" data-i18n="sendMessage">Send Message</button>
         </form>
       </div>
     </div>
@@ -83,6 +83,38 @@
     document.addEventListener('DOMContentLoaded', () => {
       if(window.EclipseStore) EclipseStore.init();
       if(window.EclipseApp) EclipseApp.initPage();
+      
+      const form = document.getElementById('contact-form');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const btn = document.getElementById('contact-submit');
+          const originalText = btn.innerText;
+          btn.innerText = 'Sending...';
+          btn.disabled = true;
+
+          const payload = {
+            name: document.getElementById('contact-name').value,
+            email: document.getElementById('contact-email').value,
+            message: document.getElementById('contact-message').value
+          };
+
+          try {
+            await fetch('/api/contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            window.EclipseApp?.showNotification(window.EclipseApp.t('msgSent') || 'Message sent successfully! We will get back to you soon.', 'success');
+            form.reset();
+          } catch(err) {
+            window.EclipseApp?.showNotification('Failed to send message. Please try again.', 'error');
+          } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+          }
+        });
+      }
     });
   </script>
 </body>
