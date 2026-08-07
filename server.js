@@ -127,7 +127,6 @@ app.post('/api/admin/change-password', (req, res) => {
   }
   return res.status(400).json({ success: false, error: 'Current password incorrect' });
 });
-const fs = require('fs');
 
 const DATA_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) 
   ? path.join('/tmp', 'data') 
