@@ -33,12 +33,11 @@
       document.getElementById('admin-login').style.display = 'none';
       document.getElementById('admin-app').style.display = 'flex';
       
-      const currentHash = window.location.hash;
-      if (!currentHash || currentHash === '#') {
+      const targetHash = window.location.hash || '#dashboard';
+      if (!window.location.hash || window.location.hash === '#') {
         window.location.hash = '#dashboard';
-      } else {
-        this.route(currentHash);
       }
+      this.route(targetHash);
     },
 
     handleLogin: async function(password) {
@@ -118,44 +117,54 @@
 
     initRouter: function() {
       window.addEventListener('hashchange', () => {
-        if (sessionStorage.getItem('eclipse_admin_logged_in')) {
+        const isLoggedIn = sessionStorage.getItem('eclipse_admin_logged_in');
+        if (isLoggedIn === 'true') {
           this.route(window.location.hash);
         }
       });
     },
 
     route: function(hash) {
-      this.closeMobileSidebar();
-      const page = hash.replace('#', '') || 'dashboard';
-      
-      document.querySelectorAll('.admin-sidebar__link').forEach(link => {
-        link.classList.remove('admin-sidebar__link--active');
-        if (link.dataset.page === page) {
-          link.classList.add('admin-sidebar__link--active');
+      try {
+        this.closeMobileSidebar();
+        const page = (hash || '').replace('#', '') || 'dashboard';
+        
+        document.querySelectorAll('.admin-sidebar__link').forEach(link => {
+          link.classList.remove('admin-sidebar__link--active');
+          if (link.dataset.page === page) {
+            link.classList.add('admin-sidebar__link--active');
+          }
+        });
+
+        const content = document.getElementById('admin-content');
+        if (!content) return;
+        content.innerHTML = '';
+
+        switch (page) {
+          case 'dashboard':
+            this.renderDashboard(content);
+            break;
+          case 'products':
+            this.renderProducts(content);
+            break;
+          case 'orders':
+            this.renderOrders(content);
+            break;
+          case 'norris':
+            this.renderNorris(content);
+            break;
+          case 'settings':
+            this.renderSettings(content);
+            break;
+          default:
+            this.renderDashboard(content);
         }
-      });
-
-      const content = document.getElementById('admin-content');
-      content.innerHTML = '';
-
-      switch (page) {
-        case 'dashboard':
-          this.renderDashboard(content);
-          break;
-        case 'products':
-          this.renderProducts(content);
-          break;
-        case 'orders':
-          this.renderOrders(content);
-          break;
-        case 'norris':
-          this.renderNorris(content);
-          break;
-        case 'settings':
-          this.renderSettings(content);
-          break;
-        default:
-          this.renderDashboard(content);
+      } catch (err) {
+        console.error('[Admin Route Error]', err);
+        const content = document.getElementById('admin-content');
+        if (content) {
+          content.innerHTML = `<div style="padding:40px;color:red;"><h3>Error rendering dashboard</h3><p>${err.message}</p></div>`;
+        }
       }
     },
 
@@ -181,39 +190,46 @@
     },
 
     renderDashboard: function(container) {
-      const orders = window.EclipseStore.getOrders();
-      const products = window.EclipseStore.getProducts();
+      const orders = (window.EclipseStore && window.EclipseStore.getOrders()) || [];
+      const products = (window.EclipseStore && window.EclipseStore.getProducts()) || [];
+      const formatPrice = (window.EclipseApp && window.EclipseApp.formatPrice) ? window.EclipseApp.formatPrice : (n => (n || 0) + ' DA');
 
       let totalRevenue = 0;
       let totalOrders = orders.length;
       let pendingOrders = 0;
       
       orders.forEach(o => {
-        if (o.status === 'delivered') totalRevenue += o.total;
+        if (!o) return;
+        if (o.status === 'delivered') totalRevenue += (Number(o.total) || 0);
         if (o.status === 'pending') pendingOrders++;
       });
 
       let lowStockAlerts = 0;
       products.forEach(p => {
+        if (!p) return;
         const sizes = p.sizes || {};
-        const isLow = Object.values(sizes).some(qty => qty <= 3);
+        const isLow = Object.values(sizes).some(qty => (Number(qty) || 0) <= 3);
         if (isLow) lowStockAlerts++;
       });
 
       const productCounts = {};
       orders.forEach(o => {
+        if (!o) return;
         (o.items || []).forEach(item => {
-          if (!productCounts[item.id]) {
-            productCounts[item.id] = { id: item.id, title: item.title, count: 0 };
+          if (!item) return;
+          const itemId = item.productId || item.id || 'item';
+          const qty = Number(item.quantity || item.qty || 1);
+          if (!productCounts[itemId]) {
+            productCounts[itemId] = { id: itemId, title: item.title || 'Product', count: 0 };
           }
-          productCounts[item.id].count += item.qty;
+          productCounts[itemId].count += qty;
         });
       });
       const topProducts = Object.values(productCounts)
         .sort((a,b) => b.count - a.count)
         .slice(0, 5);
 
-      const recentOrders = [...orders].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
+      const recentOrders = [...orders].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 10);
 
       const html = `
         <div class="admin-topbar">
@@ -222,7 +238,7 @@
         <div class="dashboard-stats" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 32px;">
           <div class="stat-card" style="background:#fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <p style="color:var(--color-text-muted); font-size:14px;">Total Revenue</p>
-            <h2 style="font-size:24px; margin-top:8px;">${window.EclipseApp.formatPrice(totalRevenue)}</h2>
+            <h2 style="font-size:24px; margin-top:8px;">${formatPrice(totalRevenue)}</h2>
           </div>
           <div class="stat-card" style="background:#fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <p style="color:var(--color-text-muted); font-size:14px;">Total Orders</p>
@@ -255,17 +271,20 @@
                   </tr>
                 </thead>
                 <tbody>
-                  ${recentOrders.length ? recentOrders.map(o => `
+                  ${recentOrders.length ? recentOrders.map(o => {
+                    const cust = (o && o.customer) ? o.customer : {};
+                    const custName = (cust.firstName || cust.name || 'Customer') + ' ' + (cust.lastName || '');
+                    return `
                     <tr style="border-bottom:1px solid #eee; cursor:pointer;" onclick="AdminApp.openOrderModal('${o.id}')">
-                      <td style="padding: 12px 0;">${o.id}</td>
-                      <td style="padding: 12px 0;">${o.customer.firstName || o.customer.name} ${o.customer.lastName || ''}</td>
-                      <td style="padding: 12px 0;">${o.customer.wilaya}</td>
-                      <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'Norris Logistics'}</span></td>
-                      <td style="padding: 12px 0;">${window.EclipseApp.formatPrice(o.total)}</td>
+                      <td style="padding: 12px 0;">${o.id || ''}</td>
+                      <td style="padding: 12px 0;">${custName}</td>
+                      <td style="padding: 12px 0;">${cust.wilaya || 'N/A'}</td>
+                      <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'NOEST Logistics'}</span></td>
+                      <td style="padding: 12px 0;">${formatPrice(o.total)}</td>
                       <td style="padding: 12px 0;">${this.renderStatusBadge(o.status)}</td>
                       <td style="padding: 12px 0; color:var(--color-text-muted); font-size:14px;">${this.formatDate(o.createdAt || o.date)}</td>
                     </tr>
-                  `).join('') : '<tr><td colspan="7" style="padding:12px;text-align:center;">No orders yet.</td></tr>'}
+                  `}).join('') : '<tr><td colspan="7" style="padding:12px;text-align:center;">No orders yet.</td></tr>'}
                 </tbody>
               </table>
             </div>
