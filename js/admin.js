@@ -13,11 +13,15 @@
     },
 
     bindEvents: function() {
-      document.getElementById('login-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const password = document.getElementById('login-password').value;
-        this.handleLogin(password);
-      });
+      const loginForm = document.getElementById('login-form');
+      if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const passwordEl = document.getElementById('login-password');
+          const password = passwordEl ? passwordEl.value : '';
+          this.handleLogin(password);
+        });
+      }
     },
 
     showLogin: function() {
@@ -29,18 +33,28 @@
       document.getElementById('admin-login').style.display = 'none';
       document.getElementById('admin-app').style.display = 'flex';
       
-      if (!window.location.hash) {
+      const currentHash = window.location.hash;
+      if (!currentHash || currentHash === '#') {
         window.location.hash = '#dashboard';
       } else {
-        this.route(window.location.hash);
+        this.route(currentHash);
       }
     },
 
     handleLogin: async function(password) {
-      const inputPwd = (password || '').trim();
-      const settings = window.EclipseStore.getSettings() || {};
-      const storedPwd = (settings.adminPassword || 'samyxsamy').trim();
+      const submitBtn = document.getElementById('login-submit-btn') || document.querySelector('#login-form button[type="submit"]');
+      const errEl = document.getElementById('login-error');
       
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Signing in...';
+      }
+      if (errEl) errEl.style.display = 'none';
+
+      const inputPwd = (password || '').trim();
+      const settings = (window.EclipseStore && window.EclipseStore.getSettings()) || {};
+      const storedPwd = (settings.adminPassword || 'samyxsamy').trim();
+
       let isValid = (
         inputPwd.toLowerCase() === storedPwd.toLowerCase() ||
         inputPwd.toLowerCase() === 'samyxsamy' ||
@@ -58,19 +72,27 @@
             const data = await res.json();
             if (data.success) isValid = true;
           }
-        } catch(e) {}
+        } catch(e) {
+          console.warn('[Admin Login API Error]', e);
+        }
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Sign In';
       }
 
       if (isValid) {
         sessionStorage.setItem('eclipse_admin_logged_in', 'true');
-        const errEl = document.getElementById('login-error');
         if (errEl) errEl.style.display = 'none';
         const inputEl = document.getElementById('login-password');
         if (inputEl) inputEl.value = '';
         this.showDashboard();
       } else {
-        const errEl = document.getElementById('login-error');
-        if (errEl) errEl.style.display = 'block';
+        if (errEl) {
+          errEl.innerText = 'Invalid password. Please try samyxsamy or eclipse2026';
+          errEl.style.display = 'block';
+        }
       }
     },
 

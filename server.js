@@ -108,7 +108,10 @@ app.post('/api/admin/login', (req, res) => {
   const inputPwd = (password || '').trim().toLowerCase();
   const currentPwd = activeAdminPassword.trim().toLowerCase();
 
-  if (inputPwd === currentPwd || inputPwd === 'samyxsamy' || inputPwd === 'eclipse2026') {
+  const settings = readJsonFile('settings.json', {});
+  const savedPwd = (settings && settings.adminPassword) ? settings.adminPassword.trim().toLowerCase() : '';
+
+  if (inputPwd === currentPwd || (savedPwd && inputPwd === savedPwd) || inputPwd === 'samyxsamy' || inputPwd === 'eclipse2026') {
     return res.json({ success: true });
   }
   return res.status(401).json({ success: false, error: 'Invalid password' });
