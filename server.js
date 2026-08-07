@@ -225,37 +225,36 @@ app.post('/api/contact', async (req, res) => {
   });
   writeJsonFile('messages.json', messages);
 
-  // Send via Nodemailer if env vars are present
+  // Send via Web3Forms (HTTPS - bypasses Render SMTP block)
   try {
-    const nodemailer = require('nodemailer');
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
+    const web3formsKey = '0678274f-3041-4e89-81c2-3812cabcb1da';
     
-    if (user && pass) {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass },
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 5000
-      });
-
-      await transporter.sendMail({
-        from: `"${name}" <${user}>`,
-        replyTo: email,
-        to: 'Eclipsebrand213@gmail.com',
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        access_key: web3formsKey,
         subject: `New Contact Message from ${name} (Eclipse Store)`,
-        text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
-      });
-      console.log('Contact email sent successfully.');
+        from_name: name,
+        email: email,
+        message: message
+      })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      console.log('Contact email sent successfully via Web3Forms.');
+      return res.json({ success: true });
     } else {
-      console.log('No EMAIL_USER or EMAIL_PASS in .env. Message saved to messages.json only.');
+      console.error('Web3Forms error:', result.message);
+      return res.json({ success: true, warning: `Email failed to send. Error: ${result.message}` });
     }
-    
-    return res.json({ success: true });
   } catch (err) {
-    console.error('Email send error:', err);
-    return res.json({ success: true, warning: `Google blocked the email. Check your App Password. (Error: ${err.message})` });
+    console.error('Web3Forms fetch error:', err);
+    return res.json({ success: true, warning: `Network error while sending email: ${err.message}` });
   }
 });
 
