@@ -97,6 +97,7 @@
             name: document.getElementById('contact-name').value,
             email: document.getElementById('contact-email').value,
             message: document.getElementById('contact-message').value
+          };
           try {
             // 1. Save backup to our backend
             fetch('/api/contact', {
