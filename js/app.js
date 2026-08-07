@@ -359,6 +359,7 @@
             <div>
               <div class="footer__heading">Contact & Social</div>
               <a href="https://www.instagram.com/eclipse.notasalways?igsh=MXRlN202cHNpeGpjYQ==&utm_source=qr" target="_blank" rel="noopener noreferrer" class="footer__link">Instagram (@eclipse.notasalways)</a>
+              <a href="https://www.tiktok.com/@eclipse.notasalways?_r=1&_t=ZS-98giRfX2KPN" target="_blank" rel="noopener noreferrer" class="footer__link">TikTok (@eclipse.notasalways)</a>
               <a href="mailto:Eclipsebrand213@gmail.com" class="footer__link">Eclipsebrand213@gmail.com</a>
             </div>
           </div>
