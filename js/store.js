@@ -1,3 +1,13 @@
+(function(window) {
+  function getData(key) {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+  }
+
+  function setData(key, val) {
+    localStorage.setItem(key, JSON.stringify(val));
+  }
+
   function syncToServer(endpoint, payload) {
     try {
       fetch(endpoint, {
