@@ -225,37 +225,9 @@ app.post('/api/contact', async (req, res) => {
   });
   writeJsonFile('messages.json', messages);
 
-  // Send via Web3Forms (HTTPS - bypasses Render SMTP block)
-  try {
-    const web3formsKey = '0678274f-3041-4e89-81c2-3812cabcb1da';
-    
-    const response = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        access_key: web3formsKey,
-        subject: `New Contact Message from ${name} (Eclipse Store)`,
-        from_name: name,
-        email: email,
-        message: message
-      })
-    });
-
-    const result = await response.json();
-    if (result.success) {
-      console.log('Contact email sent successfully via Web3Forms.');
-      return res.json({ success: true });
-    } else {
-      console.error('Web3Forms error:', result.message);
-      return res.json({ success: true, warning: `Email failed to send. Error: ${result.message}` });
-    }
-  } catch (err) {
-    console.error('Web3Forms fetch error:', err);
-    return res.json({ success: true, warning: `Network error while sending email: ${err.message}` });
-  }
+  // Email sending is now handled directly by the frontend to bypass Cloudflare bot protection.
+  // We only return success here so the backend saves the backup to messages.json.
+  return res.json({ success: true });
 });
 
 // ─── HTML Page Routes ───────────────────────────────────────────────
