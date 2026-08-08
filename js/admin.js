@@ -792,23 +792,23 @@
 
       const html = `
         <div class="admin-topbar">
-          <h1 class="admin-topbar__title">NOEST Express (Nord et Ouest)</h1>
+          <h1 class="admin-topbar__title">NOEST Express (Nord et Ouest) Integration</h1>
         </div>
         
         <div style="max-width:600px; margin-bottom:24px;">
           <div style="background:#fff; border:var(--border-thick); padding: 28px; box-shadow:var(--shadow-line-sm);">
             <h3 style="margin-bottom:16px;">📦 NOEST Express API Settings</h3>
             <div class="form-group">
-              <label class="form-label">Base URL</label>
-              <input type="text" class="form-input" id="no-base-url" value="${s.nordOuestBaseUrl || 'https://app.noest-dz.com'}">
+              <label class="form-label">API Base URL</label>
+              <input type="text" class="form-input" id="no-base-url" value="${s.nordOuestBaseUrl || 'https://api.yalidine.app'}">
             </div>
             <div class="form-group">
-              <label class="form-label">API Token</label>
-              <input type="text" class="form-input" id="no-api-token" value="${s.nordOuestApiToken || s.nordOuestApiKey || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi'}">
+              <label class="form-label">API ID (Numeric ID from your Courier Account)</label>
+              <input type="text" class="form-input" id="no-guid" placeholder="e.g. 12345678" value="${s.nordOuestGuid || s.nordOuestApiSecret || ''}">
             </div>
             <div class="form-group">
-              <label class="form-label">Account GUID</label>
-              <input type="text" class="form-input" id="no-guid" value="${s.nordOuestGuid || s.nordOuestApiSecret || 'N1L20U4L'}">
+              <label class="form-label">API Token (Secret Key from your Courier Account)</label>
+              <input type="text" class="form-input" id="no-api-token" placeholder="e.g. uwybanjyos56WaZookzmUe0fHXTIvMtuiMi" value="${s.nordOuestApiToken || s.nordOuestApiKey || ''}">
             </div>
             <button class="btn btn--primary" onclick="AdminApp.saveLogisticsSettings()">Save NOEST Credentials</button>
           </div>

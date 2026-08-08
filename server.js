@@ -61,7 +61,7 @@ app.use(express.static(ROOT_DIR, {
   index: 'index.html'
 }));
 
-// ─── Nord et Ouest (NOEST Express) API Proxy ────────────────────────
+// ─── Nord et Ouest (NOEST Express) / Yalidine API Proxy ─────────────
 app.all('/api/nord-ouest/*', async (req, res) => {
   const endpoint = req.params[0];
 
@@ -76,38 +76,29 @@ app.all('/api/nord-ouest/*', async (req, res) => {
     settings = readJsonFile('settings.json', {});
   }
 
-  const rawBaseUrl = settings.nordOuestBaseUrl || process.env.NORD_OUEST_BASE || 'https://app.noest-dz.com';
+  const rawBaseUrl = settings.nordOuestBaseUrl || process.env.NORD_OUEST_BASE || 'https://api.yalidine.app';
   const cleanBase = rawBaseUrl.replace(/\/+$/, '');
-  const baseUrl = cleanBase.endsWith('/api/v1') ? cleanBase : (cleanBase.endsWith('/api') ? cleanBase + '/v1' : cleanBase + '/api/v1');
+  const baseUrl = cleanBase.endsWith('/v1') ? cleanBase : cleanBase + '/v1';
 
-  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || settings.nordOuestApiToken || process.env.NORD_OUEST_API_TOKEN;
-  const guid = req.headers['x-user-guid'] || req.headers['x-api-secret'] || settings.nordOuestGuid || process.env.NORD_OUEST_GUID;
+  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || settings.nordOuestApiToken || process.env.NORD_OUEST_API_TOKEN || '';
+  const apiId = req.headers['x-api-id'] || req.headers['x-user-guid'] || req.headers['x-api-secret'] || settings.nordOuestGuid || process.env.NORD_OUEST_GUID || '';
 
   try {
-    const queryParams = new URLSearchParams(req.query);
-    if (!queryParams.has('api_token') && apiToken) queryParams.set('api_token', apiToken);
-    if (!queryParams.has('user_guid') && guid) queryParams.set('user_guid', guid);
-
-    const targetUrl = `${baseUrl}/${endpoint}?${queryParams.toString()}`;
+    const targetUrl = `${baseUrl}/${endpoint}`;
 
     const options = {
       method: req.method,
       headers: {
+        'X-API-ID': apiId,
         'X-API-TOKEN': apiToken,
-        'X-USER-GUID': guid,
-        'Authorization': `Bearer ${apiToken}`,
+        'X-USER-GUID': apiId,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
     };
 
     if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
-      const payload = Object.assign({}, req.body, {
-        api_token: apiToken,
-        user_guid: guid,
-        guid: guid
-      });
-      options.body = JSON.stringify(payload);
+      options.body = JSON.stringify(req.body);
     }
 
     const response = await fetch(targetUrl, options);
@@ -121,9 +112,9 @@ app.all('/api/nord-ouest/*', async (req, res) => {
       res.status(response.status).send(text);
     }
   } catch (error) {
-    console.error('[NOEST Proxy Error]', error.message);
+    console.error('[Logistics Proxy Error]', error.message);
     res.status(500).json({
-      error: 'Failed to connect to Nord et Ouest API',
+      error: 'Failed to connect to Logistics API',
       details: error.message
     });
   }
