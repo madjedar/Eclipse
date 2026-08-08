@@ -106,12 +106,10 @@
   <script src="/js/nord-ouest.js"></script>
   <script src="/js/checkout.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if(window.EclipseStore) EclipseStore.init();
-      if(window.EclipseApp) {
-        EclipseApp.initPage();
-      }
-      if(window.CheckoutApp) CheckoutApp.init();
+    document.addEventListener('DOMContentLoaded', async () => {
+      if(window.EclipseStore) await EclipseStore.init();
+      if(window.EclipseApp) EclipseApp.initPage();
+      if(window.EclipseCheckout) EclipseCheckout.init();
     });
   </script>
 </body>

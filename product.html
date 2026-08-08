@@ -60,9 +60,10 @@
   <script src="/js/app.js"></script>
   <script src="/js/product.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if(window.EclipseStore) EclipseStore.init();
+    document.addEventListener('DOMContentLoaded', async () => {
+      if(window.EclipseStore) await EclipseStore.init();
       if(window.EclipseApp) EclipseApp.initPage();
+      if(window.EclipseProduct) EclipseProduct.init();
     });
   </script>
 </body>

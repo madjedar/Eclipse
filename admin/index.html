@@ -110,8 +110,8 @@
   <script src="/js/nord-ouest.js"></script>
   <script src="/js/admin.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      EclipseStore.init();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await EclipseStore.init();
       AdminApp.init();
     });
   </script>
