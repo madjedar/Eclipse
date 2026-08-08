@@ -2,31 +2,9 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 
-// Connect to MongoDB if MONGO_URI is set
-let db = null;
-if (process.env.MONGO_URI) {
-  const { MongoClient } = require('mongodb');
-  MongoClient.connect(process.env.MONGO_URI)
-    .then(client => {
-      db = client.db();
-      console.log('✅ Connected to MongoDB');
-    })
-    .catch(err => console.error('MongoDB connection error:', err));
-}
-
-// Robust cross-environment fetch handler
-let fetch = globalThis.fetch;
-if (!fetch) {
-  try {
-    fetch = require('node-fetch');
-  } catch (e) {
-    fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
-  }
-}
-
 const ROOT_DIR = process.cwd();
 
-// Load .env configuration
+// Load .env configuration FIRST before checking process.env.MONGO_URI
 const envPath = path.join(ROOT_DIR, '.env');
 if (fs.existsSync(envPath)) {
   const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
@@ -43,6 +21,42 @@ if (fs.existsSync(envPath)) {
       }
     }
   });
+}
+
+// Guaranteed async MongoDB Connection Helper
+let mongoPromise = null;
+let db = null;
+
+async function getDb() {
+  if (db) return db;
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) return null;
+
+  if (!mongoPromise) {
+    const { MongoClient } = require('mongodb');
+    mongoPromise = MongoClient.connect(mongoUri)
+      .then(client => {
+        db = client.db();
+        console.log('✅ Connected to MongoDB');
+        return db;
+      })
+      .catch(err => {
+        console.error('MongoDB connection error:', err);
+        mongoPromise = null;
+        return null;
+      });
+  }
+  return await mongoPromise;
+}
+
+// Robust cross-environment fetch handler
+let fetch = globalThis.fetch;
+if (!fetch) {
+  try {
+    fetch = require('node-fetch');
+  } catch (e) {
+    fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+  }
 }
 
 const app = express();
@@ -67,9 +81,10 @@ app.all('/api/nord-ouest/*', async (req, res) => {
 
   // Fetch store settings for NOEST credentials if available
   let settings = {};
-  if (db) {
+  const activeDb = await getDb();
+  if (activeDb) {
     try {
-      const doc = await db.collection('store').findOne({ _id: 'settings' });
+      const doc = await activeDb.collection('store').findOne({ _id: 'settings' });
       if (doc && doc.data) settings = doc.data;
     } catch(e) {}
   } else {
@@ -128,8 +143,9 @@ app.post('/api/admin/login', async (req, res) => {
   const currentPwd = activeAdminPassword.trim().toLowerCase();
 
   let settings = {};
-  if (db) {
-    const doc = await db.collection('store').findOne({ _id: 'settings' });
+  const activeDb = await getDb();
+  if (activeDb) {
+    const doc = await activeDb.collection('store').findOne({ _id: 'settings' });
     if (doc) settings = doc.data;
   } else {
     settings = readJsonFile('settings.json', {});
@@ -193,9 +209,10 @@ function writeJsonFile(filename, data) {
 
 // ─── Products API Persistence ───────────────────────────────────────
 app.get('/api/store/products', async (req, res) => {
+  const activeDb = await getDb();
   let products = null;
-  if (db) {
-    const doc = await db.collection('store').findOne({ _id: 'products' });
+  if (activeDb) {
+    const doc = await activeDb.collection('store').findOne({ _id: 'products' });
     products = doc ? doc.data : null;
   } else {
     products = readJsonFile('products.json', null);
@@ -206,8 +223,9 @@ app.get('/api/store/products', async (req, res) => {
 app.post('/api/store/products', async (req, res) => {
   const { products } = req.body || {};
   if (Array.isArray(products)) {
-    if (db) {
-      await db.collection('store').updateOne({ _id: 'products' }, { $set: { data: products } }, { upsert: true });
+    const activeDb = await getDb();
+    if (activeDb) {
+      await activeDb.collection('store').updateOne({ _id: 'products' }, { $set: { data: products } }, { upsert: true });
     } else {
       writeJsonFile('products.json', products);
     }
@@ -218,9 +236,10 @@ app.post('/api/store/products', async (req, res) => {
 
 // ─── Orders API Persistence ─────────────────────────────────────────
 app.get('/api/store/orders', async (req, res) => {
+  const activeDb = await getDb();
   let orders = [];
-  if (db) {
-    const doc = await db.collection('store').findOne({ _id: 'orders' });
+  if (activeDb) {
+    const doc = await activeDb.collection('store').findOne({ _id: 'orders' });
     if (doc && Array.isArray(doc.data)) orders = doc.data;
   } else {
     orders = readJsonFile('orders.json', []);
@@ -234,9 +253,10 @@ app.post('/api/store/orders', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid orders data' });
   }
 
+  const activeDb = await getDb();
   let existingOrders = [];
-  if (db) {
-    const doc = await db.collection('store').findOne({ _id: 'orders' });
+  if (activeDb) {
+    const doc = await activeDb.collection('store').findOne({ _id: 'orders' });
     if (doc && Array.isArray(doc.data)) existingOrders = doc.data;
   } else {
     existingOrders = readJsonFile('orders.json', []);
@@ -253,8 +273,8 @@ app.post('/api/store/orders', async (req, res) => {
     }
   });
 
-  if (db) {
-    await db.collection('store').updateOne({ _id: 'orders' }, { $set: { data: existingOrders } }, { upsert: true });
+  if (activeDb) {
+    await activeDb.collection('store').updateOne({ _id: 'orders' }, { $set: { data: existingOrders } }, { upsert: true });
   } else {
     writeJsonFile('orders.json', existingOrders);
   }
@@ -263,9 +283,10 @@ app.post('/api/store/orders', async (req, res) => {
 
 // ─── Settings API Persistence ───────────────────────────────────────
 app.get('/api/store/settings', async (req, res) => {
+  const activeDb = await getDb();
   let settings = null;
-  if (db) {
-    const doc = await db.collection('store').findOne({ _id: 'settings' });
+  if (activeDb) {
+    const doc = await activeDb.collection('store').findOne({ _id: 'settings' });
     settings = doc ? doc.data : null;
   } else {
     settings = readJsonFile('settings.json', null);
@@ -276,8 +297,9 @@ app.get('/api/store/settings', async (req, res) => {
 app.post('/api/store/settings', async (req, res) => {
   const { settings } = req.body || {};
   if (settings && typeof settings === 'object') {
-    if (db) {
-      await db.collection('store').updateOne({ _id: 'settings' }, { $set: { data: settings } }, { upsert: true });
+    const activeDb = await getDb();
+    if (activeDb) {
+      await activeDb.collection('store').updateOne({ _id: 'settings' }, { $set: { data: settings } }, { upsert: true });
     } else {
       writeJsonFile('settings.json', settings);
     }
@@ -298,8 +320,9 @@ app.post('/api/contact', async (req, res) => {
     date: new Date().toISOString()
   };
 
-  if (db) {
-    await db.collection('store').updateOne(
+  const activeDb = await getDb();
+  if (activeDb) {
+    await activeDb.collection('store').updateOne(
       { _id: 'messages' },
       { $push: { data: newMsg } },
       { upsert: true }
