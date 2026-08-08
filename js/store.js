@@ -14,7 +14,11 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      }).catch(() => {});
+      }).then(res => {
+        if (!res.ok) {
+          console.error('[Sync Error]', endpoint, res.status, res.statusText);
+        }
+      }).catch(err => console.error('[Sync Error]', endpoint, err));
     } catch(e) {}
   }
 

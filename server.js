@@ -51,8 +51,9 @@ const NORD_OUEST_BASE = process.env.NORD_OUEST_BASE || 'https://app.noest-dz.com
 const NORD_OUEST_API_TOKEN = process.env.NORD_OUEST_API_TOKEN || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
 const NORD_OUEST_GUID = process.env.NORD_OUEST_GUID || 'N1L20U4L';
 
-// Parse JSON bodies
-app.use(express.json());
+// Parse JSON bodies (increased limit to 50mb for product base64 images)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve static files from project root
 app.use(express.static(ROOT_DIR, {
