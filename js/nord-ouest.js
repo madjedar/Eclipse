@@ -40,23 +40,28 @@
       
       const parcelData = {
         tracking_code: order.nordOuestTracking || ('NO-' + Math.floor(10000000 + Math.random() * 90000000)),
-        client_name: `${order.customer.firstName || order.customer.name} ${order.customer.lastName || ''}`,
+        client_name: `${order.customer.firstName || order.customer.name || ''} ${order.customer.lastName || ''}`.trim(),
+        firstname: order.customer.firstName || order.customer.name || '',
+        familyname: order.customer.lastName || '',
         phone: order.customer.phone,
+        contact_phone: order.customer.phone,
         address: order.customer.address,
         wilaya: order.customer.wilaya,
+        wilaya_name: order.customer.wilaya,
+        to_wilaya_name: order.customer.wilaya,
         commune: order.customer.commune,
+        commune_name: order.customer.commune,
+        to_commune_name: order.customer.commune,
         items: productList,
+        product_list: productList,
         total_amount: order.total,
-        is_stop_desk: order.customer.deliveryType === 'desk' ? 1 : 0
+        price: order.total,
+        is_stop_desk: order.customer.deliveryType === 'desk' ? 1 : 0,
+        is_stopdesk: order.customer.deliveryType === 'desk' ? 1 : 0
       };
 
-      try {
-        const res = await apiCall('POST', 'shipments', parcelData);
-        return { success: true, trackingNumber: parcelData.tracking_code, response: res };
-      } catch (e) {
-        // Fallback for demo when backend credentials are not live
-        return { success: true, trackingNumber: parcelData.tracking_code, mock: true };
-      }
+      const res = await apiCall('POST', 'shipments', parcelData);
+      return { success: true, trackingNumber: parcelData.tracking_code, response: res };
     },
 
     getTrackingHistory: async function(tracking) {

@@ -64,15 +64,31 @@ app.use(express.static(ROOT_DIR, {
 // ─── Nord et Ouest (NOEST Express) API Proxy ────────────────────────
 app.all('/api/nord-ouest/*', async (req, res) => {
   const endpoint = req.params[0];
-  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || NORD_OUEST_API_TOKEN;
-  const guid = req.headers['x-user-guid'] || req.headers['x-api-secret'] || NORD_OUEST_GUID;
+
+  // Fetch store settings for NOEST credentials if available
+  let settings = {};
+  if (db) {
+    try {
+      const doc = await db.collection('store').findOne({ _id: 'settings' });
+      if (doc && doc.data) settings = doc.data;
+    } catch(e) {}
+  } else {
+    settings = readJsonFile('settings.json', {});
+  }
+
+  const rawBaseUrl = settings.nordOuestBaseUrl || process.env.NORD_OUEST_BASE || 'https://app.noest-dz.com';
+  const cleanBase = rawBaseUrl.replace(/\/+$/, '');
+  const baseUrl = cleanBase.endsWith('/api/v1') ? cleanBase : (cleanBase.endsWith('/api') ? cleanBase + '/v1' : cleanBase + '/api/v1');
+
+  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || settings.nordOuestApiToken || process.env.NORD_OUEST_API_TOKEN;
+  const guid = req.headers['x-user-guid'] || req.headers['x-api-secret'] || settings.nordOuestGuid || process.env.NORD_OUEST_GUID;
 
   try {
     const queryParams = new URLSearchParams(req.query);
-    if (!queryParams.has('api_token')) queryParams.set('api_token', apiToken);
-    if (!queryParams.has('user_guid')) queryParams.set('user_guid', guid);
+    if (!queryParams.has('api_token') && apiToken) queryParams.set('api_token', apiToken);
+    if (!queryParams.has('user_guid') && guid) queryParams.set('user_guid', guid);
 
-    const targetUrl = `${NORD_OUEST_BASE}/${endpoint}?${queryParams.toString()}`;
+    const targetUrl = `${baseUrl}/${endpoint}?${queryParams.toString()}`;
 
     const options = {
       method: req.method,
@@ -105,7 +121,7 @@ app.all('/api/nord-ouest/*', async (req, res) => {
       res.status(response.status).send(text);
     }
   } catch (error) {
-    console.error('[Nord et Ouest Proxy Error]', error.message);
+    console.error('[NOEST Proxy Error]', error.message);
     res.status(500).json({
       error: 'Failed to connect to Nord et Ouest API',
       details: error.message
