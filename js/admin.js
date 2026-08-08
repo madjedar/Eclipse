@@ -30,14 +30,29 @@
     },
 
     showDashboard: function() {
+      const layout = document.getElementById('admin-app');
+      if (layout) {
+        layout.style.display = 'flex';
+        if (localStorage.getItem('eclipse_admin_sidebar_collapsed') === 'true') {
+          layout.classList.add('admin-layout--sidebar-collapsed');
+        }
+      }
       document.getElementById('admin-login').style.display = 'none';
-      document.getElementById('admin-app').style.display = 'flex';
       
       const targetHash = window.location.hash || '#dashboard';
       if (!window.location.hash || window.location.hash === '#') {
         window.location.hash = '#dashboard';
       }
       this.route(targetHash);
+    },
+
+    toggleSidebarCollapsed: function() {
+      const layout = document.getElementById('admin-app');
+      if (layout) {
+        layout.classList.toggle('admin-layout--sidebar-collapsed');
+        const isCollapsed = layout.classList.contains('admin-layout--sidebar-collapsed');
+        localStorage.setItem('eclipse_admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      }
     },
 
     handleLogin: async function(password) {
@@ -138,7 +153,12 @@
 
         const content = document.getElementById('admin-content');
         if (!content) return;
-        content.innerHTML = '';
+        content.innerHTML = `
+          <button class="admin-sidebar-expand-btn" onclick="AdminApp.toggleSidebarCollapsed()" title="Show Sidebar Menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M12 10l3 3-3 3"></path></svg>
+            <span>Show Menu</span>
+          </button>
+        `;
 
         switch (page) {
           case 'dashboard':
@@ -311,7 +331,7 @@
           </div>
         </div>
       `;
-      container.innerHTML = html;
+      container.innerHTML += html;
     },
 
     renderProducts: function(container) {
@@ -357,7 +377,7 @@
           </table>
         </div>
       `;
-      container.innerHTML = html;
+      container.innerHTML += html;
     },
 
     deleteProduct: function(id) {
@@ -664,7 +684,7 @@
           </table>
         </div>
       `;
-      container.innerHTML = html;
+      container.innerHTML += html;
     },
 
     openOrderModal: function(orderId) {
@@ -823,7 +843,7 @@
           </div>
         </div>
       `;
-      container.innerHTML = html;
+      container.innerHTML += html;
     },
 
     saveLogisticsSettings: function() {
@@ -883,7 +903,7 @@
           </div>
         </div>
       `;
-      container.innerHTML = html;
+      container.innerHTML += html;
     },
 
     saveStoreSettings: function() {

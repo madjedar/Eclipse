@@ -1150,10 +1150,49 @@ h1, h2, h3, h4, h5, h6 {
   margin-left: 260px;
   padding: 48px;
   max-width: 1400px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 [dir="rtl"] .admin-content {
   margin-left: 0;
   margin-right: 260px;
+}
+
+/* Sidebar Slide Toggle / Collapse Styles */
+.admin-sidebar-expand-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg);
+  border: var(--border-heavy);
+  padding: 10px 18px;
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-line-sm);
+  transition: all 0.2s ease;
+}
+.admin-sidebar-expand-btn:hover {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.admin-layout--sidebar-collapsed .admin-sidebar {
+  transform: translateX(-100%);
+}
+[dir="rtl"] .admin-layout--sidebar-collapsed .admin-sidebar {
+  transform: translateX(100%);
+}
+.admin-layout--sidebar-collapsed .admin-content {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+}
+.admin-layout--sidebar-collapsed .admin-sidebar-expand-btn {
+  display: inline-flex !important;
 }
 
 @media (max-width: 960px) {
