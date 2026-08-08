@@ -20,7 +20,15 @@
       } catch(e) {}
 
       if (!response.ok) {
-        const msg = (data && (data.message || data.error || data.details)) || response.statusText || ('HTTP ' + response.status);
+        let msg = '';
+        if (data && data.errors && typeof data.errors === 'object') {
+          const details = Object.entries(data.errors)
+            .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(', ') : errs}`)
+            .join(' | ');
+          msg = details || data.message || response.statusText;
+        } else {
+          msg = (data && (data.message || data.error || data.details)) || response.statusText || ('HTTP ' + response.status);
+        }
         throw new Error(typeof msg === 'object' ? JSON.stringify(msg) : msg);
       }
       return data || {};
