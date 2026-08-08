@@ -741,6 +741,13 @@
       modalEl.classList.add('modal-overlay--open', 'active');
     },
 
+    closeOrderModal: function() {
+      const modalEl = document.getElementById('order-modal');
+      if (modalEl) {
+        modalEl.classList.remove('modal-overlay--open', 'active');
+      }
+    },
+
     updateOrderStatus: function(orderId) {
       const newStatus = document.getElementById('update-status-select').value;
       const o = window.EclipseStore.getOrder(orderId);

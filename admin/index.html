@@ -81,7 +81,7 @@
   </div>
 
   <!-- Product Modal -->
-  <div class="modal-overlay" id="product-modal">
+  <div class="modal-overlay" id="product-modal" onclick="if(event.target===this) AdminApp.closeProductModal()">
     <div class="modal">
       <div class="modal__header">
         <h3 class="modal__title" id="product-modal-title">Add Product</h3>
@@ -94,7 +94,7 @@
   </div>
 
   <!-- Order Detail Modal -->
-  <div class="modal-overlay" id="order-modal">
+  <div class="modal-overlay" id="order-modal" onclick="if(event.target===this) AdminApp.closeOrderModal()">
     <div class="modal">
       <div class="modal__header">
         <h3 class="modal__title" id="order-modal-title">Order Details</h3>
