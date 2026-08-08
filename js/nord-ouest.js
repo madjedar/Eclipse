@@ -47,10 +47,11 @@
       const productList = order.items.map(item => `${item.title} (${item.size}) x${item.quantity}`).join(', ');
       
       const parcelData = {
+        order_id: order.id,
         tracking_code: order.nordOuestTracking || ('NO-' + Math.floor(10000000 + Math.random() * 90000000)),
+        firstname: order.customer.firstName || order.customer.name || 'Customer',
+        familyname: order.customer.lastName || 'Customer',
         client_name: `${order.customer.firstName || order.customer.name || ''} ${order.customer.lastName || ''}`.trim(),
-        firstname: order.customer.firstName || order.customer.name || '',
-        familyname: order.customer.lastName || '',
         phone: order.customer.phone,
         contact_phone: order.customer.phone,
         address: order.customer.address,
@@ -64,11 +65,13 @@
         product_list: productList,
         total_amount: order.total,
         price: order.total,
+        freeshipping: false,
         is_stop_desk: order.customer.deliveryType === 'desk' ? 1 : 0,
-        is_stopdesk: order.customer.deliveryType === 'desk' ? 1 : 0
+        is_stopdesk: order.customer.deliveryType === 'desk' ? true : false,
+        has_exchange: false
       };
 
-      const res = await apiCall('POST', 'shipments', parcelData);
+      const res = await apiCall('POST', 'parcels', parcelData);
       return { success: true, trackingNumber: parcelData.tracking_code, response: res };
     },
 
