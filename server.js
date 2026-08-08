@@ -215,7 +215,7 @@ app.get('/api/store/orders', async (req, res) => {
   let orders = [];
   if (db) {
     const doc = await db.collection('store').findOne({ _id: 'orders' });
-    if (doc) orders = doc.data;
+    if (doc && Array.isArray(doc.data)) orders = doc.data;
   } else {
     orders = readJsonFile('orders.json', []);
   }
@@ -223,16 +223,36 @@ app.get('/api/store/orders', async (req, res) => {
 });
 
 app.post('/api/store/orders', async (req, res) => {
-  const { orders } = req.body || {};
-  if (Array.isArray(orders)) {
-    if (db) {
-      await db.collection('store').updateOne({ _id: 'orders' }, { $set: { data: orders } }, { upsert: true });
-    } else {
-      writeJsonFile('orders.json', orders);
-    }
-    return res.json({ success: true, count: orders.length });
+  const incoming = (req.body && req.body.orders) || [];
+  if (!Array.isArray(incoming)) {
+    return res.status(400).json({ success: false, error: 'Invalid orders data' });
   }
-  return res.status(400).json({ success: false, error: 'Invalid orders data' });
+
+  let existingOrders = [];
+  if (db) {
+    const doc = await db.collection('store').findOne({ _id: 'orders' });
+    if (doc && Array.isArray(doc.data)) existingOrders = doc.data;
+  } else {
+    existingOrders = readJsonFile('orders.json', []);
+  }
+
+  // Merge incoming orders with database orders so no order is ever overwritten
+  incoming.forEach(inc => {
+    if (!inc || !inc.id) return;
+    const idx = existingOrders.findIndex(o => o.id === inc.id);
+    if (idx >= 0) {
+      existingOrders[idx] = Object.assign({}, existingOrders[idx], inc);
+    } else {
+      existingOrders.push(inc);
+    }
+  });
+
+  if (db) {
+    await db.collection('store').updateOne({ _id: 'orders' }, { $set: { data: existingOrders } }, { upsert: true });
+  } else {
+    writeJsonFile('orders.json', existingOrders);
+  }
+  return res.json({ success: true, count: existingOrders.length });
 });
 
 // ─── Settings API Persistence ───────────────────────────────────────
