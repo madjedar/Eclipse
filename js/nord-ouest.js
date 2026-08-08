@@ -1,13 +1,9 @@
 (function(window) {
   function getHeaders() {
     const settings = window.EclipseStore.getSettings();
-    const token = settings.nordOuestApiToken || settings.nordOuestApiKey || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
-    const guid = settings.nordOuestGuid || settings.nordOuestApiSecret || 'N1L20U4L';
+    const token = settings.nordOuestApiToken || settings.nordOuestApiKey || '';
     return {
-      'X-API-TOKEN': token,
-      'X-USER-GUID': guid,
-      'X-API-KEY': token,
-      'X-API-SECRET': guid,
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json'
     };
   }
@@ -29,71 +25,75 @@
       }
       return data || {};
     } catch (error) {
-      console.error('Nord et Ouest API Error:', error);
+      console.error('NOEST API Error:', error);
       throw error;
     }
   }
 
   const NordOuestAPI = {
     fetchWilayas: async function() {
-      return await apiCall('GET', 'wilayas');
+      return await apiCall('GET', 'api/public/get/wilayas');
+    },
+
+    fetchCommunes: async function(wilayaId) {
+      return await apiCall('GET', 'api/public/get/communes' + (wilayaId ? '/' + wilayaId : ''));
     },
 
     fetchDeliveryFees: async function() {
-      return await apiCall('GET', 'pricing');
+      return await apiCall('GET', 'api/public/fees');
     },
 
     createParcel: async function(order) {
+      const settings = window.EclipseStore.getSettings();
+      const userGuid = settings.nordOuestGuid || settings.nordOuestApiSecret || '';
+      
       const productList = order.items.map(item => `${item.title} (${item.size}) x${item.quantity}`).join(', ');
       
+      let ref = order.id || 'ECL-10001';
+      if (ref.length < 5) ref = 'ECL-' + ref;
+
+      const wilayaId = parseInt(order.customer.wilayaCode, 10) || 16;
+      let phoneClean = (order.customer.phone || '').replace(/\D/g, '');
+      if (phoneClean.startsWith('213')) phoneClean = '0' + phoneClean.slice(3);
+
       const parcelData = {
-        order_id: order.id,
-        tracking_code: order.nordOuestTracking || ('NO-' + Math.floor(10000000 + Math.random() * 90000000)),
-        firstname: order.customer.firstName || order.customer.name || 'Customer',
-        familyname: order.customer.lastName || 'Customer',
-        client_name: `${order.customer.firstName || order.customer.name || ''} ${order.customer.lastName || ''}`.trim(),
-        phone: order.customer.phone,
-        contact_phone: order.customer.phone,
-        address: order.customer.address,
-        wilaya: order.customer.wilaya,
-        wilaya_name: order.customer.wilaya,
-        to_wilaya_name: order.customer.wilaya,
-        commune: order.customer.commune,
-        commune_name: order.customer.commune,
-        to_commune_name: order.customer.commune,
-        items: productList,
-        product_list: productList,
-        total_amount: order.total,
-        price: order.total,
-        freeshipping: false,
-        is_stop_desk: order.customer.deliveryType === 'desk' ? 1 : 0,
-        is_stopdesk: order.customer.deliveryType === 'desk' ? true : false,
-        has_exchange: false
+        user_guid: userGuid,
+        reference: ref,
+        client: `${order.customer.firstName || order.customer.name || ''} ${order.customer.lastName || ''}`.trim() || 'Client',
+        phone: phoneClean || '0550000000',
+        adresse: order.customer.address || 'Adresse de livraison',
+        wilaya_id: wilayaId,
+        commune: order.customer.commune || 'Commune',
+        montant: Number(order.total) || 0,
+        produit: productList || 'Streetwear',
+        type_id: 1,
+        stop_desk: order.customer.deliveryType === 'desk' ? 1 : 0,
+        poids: 0.5,
+        remarque: 'Commande Eclipse Store'
       };
 
-      const res = await apiCall('POST', 'parcels', parcelData);
-      return { success: true, trackingNumber: parcelData.tracking_code, response: res };
-    },
-
-    getTrackingHistory: async function(tracking) {
-      try {
-        return await apiCall('GET', `shipments/${tracking}/track`);
-      } catch (e) {
-        return {
-          success: true,
-          history: [
-            { status: 'Shipment Created', date: new Date().toISOString(), location: 'Nord et Ouest Hub' }
-          ]
-        };
+      const res = await apiCall('POST', 'api/public/create/order', parcelData);
+      
+      if (res && res.success && res.tracking) {
+        return { success: true, trackingNumber: res.tracking, response: res };
+      } else if (res && res.tracking) {
+        return { success: true, trackingNumber: res.tracking, response: res };
+      } else {
+        const errStr = typeof res === 'object' ? (res.message || res.error || JSON.stringify(res)) : res;
+        throw new Error(errStr || 'Erreur lors de la création de la commande');
       }
     },
 
-    testConnection: async function() {
+    getTrackingHistory: async function(tracking) {
+      const settings = window.EclipseStore.getSettings();
+      const userGuid = settings.nordOuestGuid || settings.nordOuestApiSecret || '';
       try {
-        await this.fetchWilayas();
-        return { success: true, message: 'Nord et Ouest Connection Successful' };
-      } catch (error) {
-        return { success: false, message: error.message || 'Nord et Ouest Connection Failed' };
+        return await apiCall('POST', 'api/public/get/trackings/info', {
+          user_guid: userGuid,
+          trackings: [tracking]
+        });
+      } catch (e) {
+        return { success: false, error: e.message };
       }
     }
   };

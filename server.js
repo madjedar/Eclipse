@@ -61,7 +61,7 @@ app.use(express.static(ROOT_DIR, {
   index: 'index.html'
 }));
 
-// ─── Nord et Ouest (NOEST Express) / Yalidine API Proxy ─────────────
+// ─── NOEST Public API Proxy ─────────────────────────────────────────
 app.all('/api/nord-ouest/*', async (req, res) => {
   const endpoint = req.params[0];
 
@@ -76,22 +76,21 @@ app.all('/api/nord-ouest/*', async (req, res) => {
     settings = readJsonFile('settings.json', {});
   }
 
-  const rawBaseUrl = settings.nordOuestBaseUrl || process.env.NORD_OUEST_BASE || 'https://api.yalidine.app';
+  const rawBaseUrl = settings.nordOuestBaseUrl || process.env.NORD_OUEST_BASE || 'https://app.noest-dz.com';
   const cleanBase = rawBaseUrl.replace(/\/+$/, '');
-  const baseUrl = cleanBase.endsWith('/v1') ? cleanBase : cleanBase + '/v1';
 
-  const apiToken = req.headers['x-api-token'] || req.headers['x-api-key'] || settings.nordOuestApiToken || process.env.NORD_OUEST_API_TOKEN || '';
-  const apiId = req.headers['x-api-id'] || req.headers['x-user-guid'] || req.headers['x-api-secret'] || settings.nordOuestGuid || process.env.NORD_OUEST_GUID || '';
+  let apiToken = settings.nordOuestApiToken || settings.nordOuestApiKey || process.env.NORD_OUEST_API_TOKEN || '';
+  if (req.headers['authorization']) {
+    apiToken = req.headers['authorization'].replace(/^Bearer\s+/i, '');
+  }
 
   try {
-    const targetUrl = `${baseUrl}/${endpoint}`;
+    const targetUrl = `${cleanBase}/${endpoint.replace(/^\/+/, '')}`;
 
     const options = {
       method: req.method,
       headers: {
-        'X-API-ID': apiId,
-        'X-API-TOKEN': apiToken,
-        'X-USER-GUID': apiId,
+        'Authorization': `Bearer ${apiToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
@@ -112,9 +111,9 @@ app.all('/api/nord-ouest/*', async (req, res) => {
       res.status(response.status).send(text);
     }
   } catch (error) {
-    console.error('[Logistics Proxy Error]', error.message);
+    console.error('[NOEST API Proxy Error]', error.message);
     res.status(500).json({
-      error: 'Failed to connect to Logistics API',
+      error: 'Failed to connect to NOEST API',
       details: error.message
     });
   }
