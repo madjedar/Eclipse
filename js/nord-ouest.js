@@ -18,8 +18,16 @@
     
     try {
       const response = await fetch('/api/nord-ouest/' + endpoint, options);
-      if (!response.ok) throw new Error('Nord et Ouest API Error: ' + response.statusText);
-      return await response.json();
+      let data = null;
+      try {
+        data = await response.json();
+      } catch(e) {}
+
+      if (!response.ok) {
+        const msg = (data && (data.message || data.error || data.details)) || response.statusText || ('HTTP ' + response.status);
+        throw new Error(typeof msg === 'object' ? JSON.stringify(msg) : msg);
+      }
+      return data || {};
     } catch (error) {
       console.error('Nord et Ouest API Error:', error);
       throw error;
