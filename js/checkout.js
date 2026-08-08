@@ -221,7 +221,7 @@
 
       const t = (k) => window.EclipseApp ? window.EclipseApp.t(k) : k;
 
-      setTimeout(() => {
+      setTimeout(async () => {
         const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
         const addressVal = document.getElementById('shipping-address').value;
 
@@ -239,15 +239,27 @@
             address: this.deliveryMode === 'desk' ? (addressVal || 'Stop Desk (Pickup at Agency)') : addressVal,
             deliveryType: this.deliveryMode
           },
-          shippingCarrier: 'Norris Logistics (Nord et Ouest)',
+          shippingCarrier: 'Nord et Ouest Express',
           deliveryMode: this.deliveryMode,
           items: window.EclipseStore.getCart(),
           subtotal: window.EclipseStore.getCartTotal(),
           shippingFee: this.shippingFee,
           total: window.EclipseStore.getCartTotal() + this.shippingFee,
           status: 'pending',
-          nordOuestTracking: 'NORRIS-' + Math.floor(10000000 + Math.random() * 90000000)
+          nordOuestTracking: 'NO-' + Math.floor(10000000 + Math.random() * 90000000)
         };
+
+        // Dispatch parcel automatically to Nord et Ouest API
+        if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
+          try {
+            const parcelResult = await window.NordOuestAPI.createParcel(orderData);
+            if (parcelResult && parcelResult.trackingNumber) {
+              orderData.nordOuestTracking = parcelResult.trackingNumber;
+            }
+          } catch(err) {
+            console.error('[NOEST API Dispatch Error]', err);
+          }
+        }
 
         window.EclipseStore.saveOrder(orderData);
         window.EclipseStore.clearCart();

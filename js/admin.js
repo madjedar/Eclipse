@@ -732,13 +732,39 @@
         </div>
 
         <div style="background:#f0f7ff; padding:16px; border-radius:8px;">
-          <h4 style="margin-bottom:12px;">Norris Logistics Integration</h4>
+          <h4 style="margin-bottom:12px;">NOEST Express Integration</h4>
           <p>Tracking Number: <strong>${o.nordOuestTracking || 'Pending Dispatch'}</strong></p>
-          <p style="color:var(--color-text-muted); font-size:13px; margin-top:6px;">Delivery Service: <strong>Norris Logistics (Nord et Ouest)</strong></p>
+          <p style="color:var(--color-text-muted); font-size:13px; margin-top:6px;">Delivery Service: <strong>Nord et Ouest Express</strong></p>
+          <button class="btn btn--secondary" style="margin-top:12px; width:100%; font-size:12px;" onclick="AdminApp.dispatchToNOEST('${o.id}')">🚀 Dispatch Order to NOEST Express</button>
         </div>
       `;
       const modalEl = document.getElementById('order-modal');
       modalEl.classList.add('modal-overlay--open', 'active');
+    },
+
+    dispatchToNOEST: async function(orderId) {
+      const o = window.EclipseStore.getOrder(orderId);
+      if (!o) return;
+      if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
+        if (window.EclipseApp && window.EclipseApp.showNotification) {
+          window.EclipseApp.showNotification('Sending parcel to NOEST Express...', 'info');
+        }
+        try {
+          const res = await window.NordOuestAPI.createParcel(o);
+          if (res && res.trackingNumber) {
+            o.nordOuestTracking = res.trackingNumber;
+            window.EclipseStore.saveOrder(o);
+            if (window.EclipseApp && window.EclipseApp.showNotification) {
+              window.EclipseApp.showNotification('Dispatched to NOEST Express! Tracking: ' + res.trackingNumber, 'success');
+            }
+            this.openOrderModal(orderId);
+          }
+        } catch(e) {
+          if (window.EclipseApp && window.EclipseApp.showNotification) {
+            window.EclipseApp.showNotification('Failed to dispatch: ' + (e.message || 'Error'), 'error');
+          }
+        }
+      }
     },
 
     closeOrderModal: function() {
