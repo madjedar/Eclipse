@@ -2,6 +2,18 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 
+// Connect to MongoDB if MONGO_URI is set
+let db = null;
+if (process.env.MONGO_URI) {
+  const { MongoClient } = require('mongodb');
+  MongoClient.connect(process.env.MONGO_URI)
+    .then(client => {
+      db = client.db();
+      console.log('✅ Connected to MongoDB');
+    })
+    .catch(err => console.error('MongoDB connection error:', err));
+}
+
 // Robust cross-environment fetch handler
 let fetch = globalThis.fetch;
 if (!fetch) {
@@ -103,12 +115,19 @@ app.all('/api/nord-ouest/*', async (req, res) => {
 // ─── Admin Authentication API ──────────────────────────────────────
 let activeAdminPassword = process.env.ADMIN_PASSWORD || 'samyxsamy';
 
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
   const { password } = req.body || {};
   const inputPwd = (password || '').trim().toLowerCase();
   const currentPwd = activeAdminPassword.trim().toLowerCase();
 
-  const settings = readJsonFile('settings.json', {});
+  let settings = {};
+  if (db) {
+    const doc = await db.collection('store').findOne({ _id: 'settings' });
+    if (doc) settings = doc.data;
+  } else {
+    settings = readJsonFile('settings.json', {});
+  }
+
   const savedPwd = (settings && settings.adminPassword) ? settings.adminPassword.trim().toLowerCase() : '';
 
   if (inputPwd === currentPwd || (savedPwd && inputPwd === savedPwd) || inputPwd === 'samyxsamy' || inputPwd === 'eclipse2026') {
@@ -166,45 +185,75 @@ function writeJsonFile(filename, data) {
 }
 
 // ─── Products API Persistence ───────────────────────────────────────
-app.get('/api/store/products', (req, res) => {
-  const products = readJsonFile('products.json', null);
+app.get('/api/store/products', async (req, res) => {
+  let products = null;
+  if (db) {
+    const doc = await db.collection('store').findOne({ _id: 'products' });
+    products = doc ? doc.data : null;
+  } else {
+    products = readJsonFile('products.json', null);
+  }
   res.json({ success: true, products });
 });
 
-app.post('/api/store/products', (req, res) => {
+app.post('/api/store/products', async (req, res) => {
   const { products } = req.body || {};
   if (Array.isArray(products)) {
-    writeJsonFile('products.json', products);
+    if (db) {
+      await db.collection('store').updateOne({ _id: 'products' }, { $set: { data: products } }, { upsert: true });
+    } else {
+      writeJsonFile('products.json', products);
+    }
     return res.json({ success: true, count: products.length });
   }
   return res.status(400).json({ success: false, error: 'Invalid products data' });
 });
 
 // ─── Orders API Persistence ─────────────────────────────────────────
-app.get('/api/store/orders', (req, res) => {
-  const orders = readJsonFile('orders.json', []);
+app.get('/api/store/orders', async (req, res) => {
+  let orders = [];
+  if (db) {
+    const doc = await db.collection('store').findOne({ _id: 'orders' });
+    if (doc) orders = doc.data;
+  } else {
+    orders = readJsonFile('orders.json', []);
+  }
   res.json({ success: true, orders });
 });
 
-app.post('/api/store/orders', (req, res) => {
+app.post('/api/store/orders', async (req, res) => {
   const { orders } = req.body || {};
   if (Array.isArray(orders)) {
-    writeJsonFile('orders.json', orders);
+    if (db) {
+      await db.collection('store').updateOne({ _id: 'orders' }, { $set: { data: orders } }, { upsert: true });
+    } else {
+      writeJsonFile('orders.json', orders);
+    }
     return res.json({ success: true, count: orders.length });
   }
   return res.status(400).json({ success: false, error: 'Invalid orders data' });
 });
 
 // ─── Settings API Persistence ───────────────────────────────────────
-app.get('/api/store/settings', (req, res) => {
-  const settings = readJsonFile('settings.json', null);
+app.get('/api/store/settings', async (req, res) => {
+  let settings = null;
+  if (db) {
+    const doc = await db.collection('store').findOne({ _id: 'settings' });
+    settings = doc ? doc.data : null;
+  } else {
+    settings = readJsonFile('settings.json', null);
+  }
   res.json({ success: true, settings });
 });
 
-app.post('/api/store/settings', (req, res) => {
+app.post('/api/store/settings', async (req, res) => {
   const { settings } = req.body || {};
   if (settings && typeof settings === 'object') {
-    writeJsonFile('settings.json', settings);
+    if (db) {
+      await db.collection('store').updateOne({ _id: 'settings' }, { $set: { data: settings } }, { upsert: true });
+    } else {
+      writeJsonFile('settings.json', settings);
+    }
     return res.json({ success: true });
   }
   return res.status(400).json({ success: false, error: 'Invalid settings data' });
@@ -214,19 +263,29 @@ app.post('/api/store/settings', (req, res) => {
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
 
-  // Log to a messages.json file as a backup
-  const messages = readJsonFile('messages.json', []);
-  messages.push({
+  const newMsg = {
     id: Date.now().toString(),
     name,
     email,
     message,
     date: new Date().toISOString()
-  });
-  writeJsonFile('messages.json', messages);
+  };
+
+  if (db) {
+    await db.collection('store').updateOne(
+      { _id: 'messages' },
+      { $push: { data: newMsg } },
+      { upsert: true }
+    );
+  } else {
+    // Log to a messages.json file as a backup
+    const messages = readJsonFile('messages.json', []);
+    messages.push(newMsg);
+    writeJsonFile('messages.json', messages);
+  }
 
   // Email sending is now handled directly by the frontend to bypass Cloudflare bot protection.
-  // We only return success here so the backend saves the backup to messages.json.
+  // We only return success here so the backend saves the backup.
   return res.json({ success: true });
 });
 
