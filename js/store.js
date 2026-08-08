@@ -102,6 +102,32 @@
     },
 
     // ORDERS
+    fetchLatestOrders: async function() {
+      try {
+        const res = await fetch('/api/store/orders');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.orders)) {
+            setData('eclipse_orders', data.orders);
+            return data.orders;
+          }
+        }
+      } catch(e) {}
+      return this.getOrders();
+    },
+    fetchLatestProducts: async function() {
+      try {
+        const res = await fetch('/api/store/products');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.products) && data.products.length > 0) {
+            setData('eclipse_products', data.products);
+            return data.products;
+          }
+        }
+      } catch(e) {}
+      return this.getProducts();
+    },
     getOrders: function() {
       return getData('eclipse_orders') || [];
     },

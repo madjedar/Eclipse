@@ -189,7 +189,13 @@
       return `<span class="status-badge ${badgeClass}">${text}</span>`;
     },
 
-    renderDashboard: function(container) {
+    renderDashboard: async function(container) {
+      if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
+        await window.EclipseStore.fetchLatestOrders();
+      }
+      if (window.EclipseStore && typeof window.EclipseStore.fetchLatestProducts === 'function') {
+        await window.EclipseStore.fetchLatestProducts();
+      }
       const orders = (window.EclipseStore && window.EclipseStore.getOrders()) || [];
       const products = (window.EclipseStore && window.EclipseStore.getProducts()) || [];
       const formatPrice = (window.EclipseApp && window.EclipseApp.formatPrice) ? window.EclipseApp.formatPrice : (n => (n || 0) + ' DA');
@@ -601,7 +607,10 @@
       modalEl.classList.remove('modal-overlay--open', 'active');
     },
 
-    renderOrders: function(container) {
+    renderOrders: async function(container) {
+      if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
+        await window.EclipseStore.fetchLatestOrders();
+      }
       const orders = window.EclipseStore.getOrders();
       const currentFilter = window.adminOrdersFilter || 'All';
 
