@@ -64,6 +64,9 @@
       let phoneClean = (order.customer.phone || '').replace(/\D/g, '');
       if (phoneClean.startsWith('213')) phoneClean = '0' + phoneClean.slice(3);
 
+      const isStopDesk = (order.customer.deliveryType === 'desk' || order.customer.deliveryMode === 'desk') ? 1 : 0;
+      const stationCode = String(wilayaId).padStart(2, '0') + 'A';
+
       const parcelData = {
         user_guid: userGuid,
         reference: ref,
@@ -75,10 +78,15 @@
         montant: Number(order.total) || 0,
         produit: productList || 'Streetwear',
         type_id: 1,
-        stop_desk: order.customer.deliveryType === 'desk' ? 1 : 0,
+        stop_desk: isStopDesk,
         poids: 0.5,
         remarque: 'Commande Eclipse Store'
       };
+
+      if (isStopDesk === 1) {
+        parcelData.station_code = stationCode;
+        parcelData.code_station = stationCode;
+      }
 
       const res = await apiCall('POST', 'api/public/create/order', parcelData);
       
