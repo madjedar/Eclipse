@@ -388,7 +388,7 @@
         } else {
           alert('Product deleted');
         }
-        this.renderProducts(document.getElementById('admin-content'));
+        this.route('products');
       }
     },
 
@@ -619,7 +619,7 @@
       if (window.EclipseApp && window.EclipseApp.showNotification) {
         window.EclipseApp.showNotification(productId ? 'Product updated successfully' : 'Product added successfully', 'success');
       }
-      this.renderProducts(document.getElementById('admin-content'));
+      this.route('products');
     },
 
     closeProductModal: function() {
@@ -643,7 +643,7 @@
         </div>
         <div style="margin-bottom:24px; display:flex; gap:12px;">
           ${filters.map(f => `
-            <button class="btn ${currentFilter === f ? 'btn--primary' : ''}" style="padding:6px 16px;" onclick="window.adminOrdersFilter='${f}'; AdminApp.renderOrders(document.getElementById('admin-content'))">${f}</button>
+            <button class="btn ${currentFilter === f ? 'btn--primary' : ''}" style="padding:6px 16px;" onclick="window.adminOrdersFilter='${f}'; AdminApp.route('orders')">${f}</button>
           `).join('')}
         </div>
 
@@ -812,7 +812,7 @@
       }
       this.openOrderModal(orderId);
       if (window.location.hash === '#orders') {
-        this.renderOrders(document.getElementById('admin-content'));
+        this.route('orders');
       }
     },
 
