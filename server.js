@@ -75,6 +75,14 @@ app.use(express.static(ROOT_DIR, {
   index: 'index.html'
 }));
 
+// Prevent browser caching for all API routes (Safari fix)
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 // ─── NOEST Public API Proxy ─────────────────────────────────────────
 app.all('/api/nord-ouest/*', async (req, res) => {
   const endpoint = req.params[0];

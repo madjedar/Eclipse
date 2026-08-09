@@ -104,7 +104,7 @@
     // ORDERS
     fetchLatestOrders: async function() {
       try {
-        const res = await fetch('/api/store/orders');
+        const res = await fetch('/api/store/orders', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (data.success && Array.isArray(data.orders)) {
@@ -117,10 +117,10 @@
     },
     fetchLatestProducts: async function() {
       try {
-        const res = await fetch('/api/store/products');
+        const res = await fetch('/api/store/products', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          if (data.success && Array.isArray(data.products) && data.products.length > 0) {
+          if (data.success && Array.isArray(data.products)) {
             setData('eclipse_products', data.products);
             return data.products;
           }
@@ -174,17 +174,19 @@
     },
 
     init: async function() {
+      let prodFetched = false;
       // Sync from Server Database first if available
       try {
-        const prodRes = await fetch('/api/store/products');
+        const prodRes = await fetch('/api/store/products', { cache: 'no-store' });
         if (prodRes.ok) {
           const prodData = await prodRes.json();
-          if (prodData.success && Array.isArray(prodData.products) && prodData.products.length > 0) {
+          if (prodData.success && Array.isArray(prodData.products)) {
             setData('eclipse_products', prodData.products);
+            prodFetched = true;
           }
         }
 
-        const ordRes = await fetch('/api/store/orders');
+        const ordRes = await fetch('/api/store/orders', { cache: 'no-store' });
         if (ordRes.ok) {
           const ordData = await ordRes.json();
           if (ordData.success && Array.isArray(ordData.orders)) {
@@ -192,7 +194,7 @@
           }
         }
 
-        const setRes = await fetch('/api/store/settings');
+        const setRes = await fetch('/api/store/settings', { cache: 'no-store' });
         if (setRes.ok) {
           const setDataObj = await setRes.json();
           if (setDataObj.success && setDataObj.settings) {
@@ -201,8 +203,8 @@
         }
       } catch (e) {}
 
-      // Fallback demo products if store is completely empty
-      if (!localStorage.getItem('eclipse_products')) {
+      // Fallback demo products if store is completely empty AND we couldn't fetch from server
+      if (!prodFetched && !localStorage.getItem('eclipse_products')) {
         const demoProducts = [
           {
             id: 'PROD-1', title: 'Unisex Summer Graphic Tee', description: 'Lightweight summer t-shirt in white, designed for both men and women. Breathable and comfortable for the hot Algerian summer.', price: 3500, category: 'T-Shirts',
