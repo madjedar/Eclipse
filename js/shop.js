@@ -1,8 +1,9 @@
 let currentCategory = 'All';
 let currentSort = 'newest';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if(!window.EclipseStore) return;
+  await window.EclipseStore.fetchLatestProducts();
   const categories = ['All', 'T-Shirts', 'Hoodies', 'Pants', 'Jackets', 'Accessories'];
   const filtersContainer = document.getElementById('category-filters');
   

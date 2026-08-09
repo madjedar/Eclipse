@@ -3,8 +3,9 @@ let selectedSize = null;
 let selectedColor = null;
 let quantity = 1;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if(!window.EclipseStore) return;
+  await window.EclipseStore.fetchLatestProducts();
   const urlParams = new URLSearchParams(window.location.search);
   const id = urlParams.get('id');
   

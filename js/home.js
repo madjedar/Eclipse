@@ -1,5 +1,6 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if(!window.EclipseStore) return;
+  await window.EclipseStore.fetchLatestProducts();
   const products = EclipseStore.getProducts();
   const featuredGrid = document.getElementById('featured-grid');
   
