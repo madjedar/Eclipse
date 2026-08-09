@@ -335,13 +335,23 @@
     },
 
     renderProducts: function(container) {
-      const products = window.EclipseStore.getProducts();
-
       const html = `
         <div class="admin-topbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
           <h1 class="admin-topbar__title">Products</h1>
           <button class="btn btn--primary" onclick="AdminApp.openProductModal()">Add Product</button>
         </div>
+        <div id="products-table-container"></div>
+      `;
+      container.innerHTML += html;
+      this.updateProductsTable();
+    },
+
+    updateProductsTable: function() {
+      const container = document.getElementById('products-table-container');
+      if (!container) return;
+      const products = window.EclipseStore.getProducts();
+
+      container.innerHTML = `
         <div style="background:#fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 24px; overflow-x:auto;">
           <table style="width:100%; border-collapse: collapse; text-align:left;">
             <thead>
@@ -377,7 +387,6 @@
           </table>
         </div>
       `;
-      container.innerHTML += html;
     },
 
     deleteProduct: function(id) {
@@ -388,7 +397,7 @@
         } else {
           alert('Product deleted');
         }
-        this.route('products');
+        this.updateProductsTable();
       }
     },
 
@@ -619,7 +628,7 @@
       if (window.EclipseApp && window.EclipseApp.showNotification) {
         window.EclipseApp.showNotification(productId ? 'Product updated successfully' : 'Product added successfully', 'success');
       }
-      this.route('products');
+      this.updateProductsTable();
     },
 
     closeProductModal: function() {
@@ -631,11 +640,8 @@
       if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
         await window.EclipseStore.fetchLatestOrders();
       }
-      const orders = window.EclipseStore.getOrders();
-      const currentFilter = window.adminOrdersFilter || 'All';
-
-      const filteredOrders = currentFilter === 'All' ? orders : orders.filter(o => o.status.toLowerCase() === currentFilter.toLowerCase());
       const filters = ['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Returned'];
+      const currentFilter = window.adminOrdersFilter || 'All';
 
       const html = `
         <div class="admin-topbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
@@ -643,10 +649,32 @@
         </div>
         <div style="margin-bottom:24px; display:flex; gap:12px;">
           ${filters.map(f => `
-            <button class="btn ${currentFilter === f ? 'btn--primary' : ''}" style="padding:6px 16px;" onclick="window.adminOrdersFilter='${f}'; AdminApp.route('orders')">${f}</button>
+            <button class="btn order-filter-btn ${currentFilter === f ? 'btn--primary' : ''}" data-filter="${f}" style="padding:6px 16px;" onclick="AdminApp.filterOrders('${f}')">${f}</button>
           `).join('')}
         </div>
+        <div id="orders-table-container"></div>
+      `;
+      container.innerHTML += html;
+      this.updateOrdersTable();
+    },
 
+    filterOrders: function(filter) {
+      window.adminOrdersFilter = filter;
+      document.querySelectorAll('.order-filter-btn').forEach(btn => {
+        if (btn.dataset.filter === filter) btn.classList.add('btn--primary');
+        else btn.classList.remove('btn--primary');
+      });
+      this.updateOrdersTable();
+    },
+
+    updateOrdersTable: function() {
+      const container = document.getElementById('orders-table-container');
+      if (!container) return;
+      const orders = window.EclipseStore.getOrders();
+      const currentFilter = window.adminOrdersFilter || 'All';
+      const filteredOrders = currentFilter === 'All' ? orders : orders.filter(o => o.status.toLowerCase() === currentFilter.toLowerCase());
+
+      container.innerHTML = `
         <div style="background:#fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 24px; overflow-x:auto;">
           <table style="width:100%; border-collapse: collapse; text-align:left;">
             <thead>
@@ -684,7 +712,6 @@
           </table>
         </div>
       `;
-      container.innerHTML += html;
     },
 
     openOrderModal: function(orderId) {
@@ -812,7 +839,7 @@
       }
       this.openOrderModal(orderId);
       if (window.location.hash === '#orders') {
-        this.route('orders');
+        this.updateOrdersTable();
       }
     },
 
