@@ -366,9 +366,21 @@
             </thead>
             <tbody>
               ${products.length ? products.map(p => {
-                const sizes = p.sizes || {};
-                const totalStock = Object.values(sizes).reduce((sum, qty) => sum + (Number(qty)||0), 0);
-                const hasLowStock = Object.values(sizes).some(qty => qty <= 3);
+                let totalStock = 0;
+                let hasLowStock = false;
+                if (p.inventory) {
+                  Object.values(p.inventory).forEach(sizes => {
+                    Object.values(sizes).forEach(qty => {
+                      const q = Number(qty) || 0;
+                      totalStock += q;
+                      if (q <= 3) hasLowStock = true;
+                    });
+                  });
+                } else {
+                  const sizes = p.sizes || {};
+                  totalStock = Object.values(sizes).reduce((sum, qty) => sum + (Number(qty)||0), 0);
+                  hasLowStock = Object.values(sizes).some(qty => qty <= 3);
+                }
                 
                 return `
                 <tr style="border-bottom:1px solid #eee;">
@@ -406,8 +418,8 @@
 
     openProductModal: function(productId = null) {
       let p = {
-        id: '', title: '', description: '', price: 0, category: 'T-Shirts', images: [],
-        sizes: { S: 0, M: 0, L: 0, XL: 0, XXL: 0 }
+        id: '', title: '', description: '', price: 0, category: 'T-Shirts', images: [], colors: ['Black'],
+        inventory: { 'Black': { XS: 0, S: 0, M: 0, L: 0, XL: 0, XXL: 0 } }
       };
 
       if (productId) {
@@ -420,7 +432,7 @@
       const body = document.getElementById('product-modal-body');
       document.getElementById('product-modal-title').innerText = productId ? 'Edit Product Panel' : 'Add Product Counter Panel';
 
-      const sizesList = ['S', 'M', 'L', 'XL', 'XXL'];
+      const sizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
       body.innerHTML = `
         <form id="product-form" onsubmit="AdminApp.saveProduct(event, '${productId || ''}')">
@@ -481,7 +493,7 @@
                   const isChecked = p.colors && p.colors.includes(col);
                   return `
                     <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:2px solid #000; background:${isChecked ? '#000' : '#FFF'}; color:${isChecked ? '#FFF' : '#000'}; font-weight:700; font-size:12px; cursor:pointer; text-transform:uppercase;">
-                      <input type="checkbox" class="prod-color-checkbox" value="${col}" ${isChecked ? 'checked' : ''} style="display:none;" onchange="this.parentElement.style.background=this.checked?'#000':'#FFF'; this.parentElement.style.color=this.checked?'#FFF':'#000';">
+                      <input type="checkbox" class="prod-color-checkbox" value="${col}" ${isChecked ? 'checked' : ''} style="display:none;" onchange="AdminApp.handleColorChange(this)">
                       ${col}
                     </label>
                   `;
@@ -489,24 +501,15 @@
               </div>
               <div>
                 <label class="form-label" style="font-size:11px;">Add Custom Colors (comma separated)</label>
-                <input type="text" class="form-input" id="prod-custom-colors" value="${(p.colors || []).filter(c => !['Black', 'White', 'Beige', 'Grey', 'Navy', 'Olive', 'Cream', 'Red'].includes(c)).join(', ')}" placeholder="e.g. Sage Green, Charcoal">
+                <input type="text" class="form-input" id="prod-custom-colors" value="${(p.colors || []).filter(c => !['Black', 'White', 'Beige', 'Grey', 'Navy', 'Olive', 'Cream', 'Red'].includes(c)).join(', ')}" placeholder="e.g. Sage Green, Charcoal" oninput="AdminApp.renderInventoryGrid()">
               </div>
             </div>
 
             <!-- SIZE COUNTER PANEL -->
             <div style="border: var(--border-thick); padding: 20px; background: #FFFFFF;">
-              <label class="form-label" style="margin-bottom:12px;">🔢 Size Inventory Counters</label>
-              <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:12px;">
-                ${sizesList.map(sz => `
-                  <div style="text-align:center;">
-                    <span style="font-weight:900; font-size:12px; text-transform:uppercase; display:block; margin-bottom:6px;">Size ${sz}</span>
-                    <div class="counter-box" style="justify-content:center;">
-                      <button type="button" class="counter-btn" onclick="AdminApp.adjustStockCounter('${sz}', -1)">-</button>
-                      <input type="number" class="counter-input" id="size-${sz}" value="${p.sizes?.[sz] || 0}" min="0">
-                      <button type="button" class="counter-btn" onclick="AdminApp.adjustStockCounter('${sz}', 1)">+</button>
-                    </div>
-                  </div>
-                `).join('')}
+              <label class="form-label" style="margin-bottom:12px;">🔢 Inventory per Color</label>
+              <div id="inventory-grid-container">
+                <!-- Dynamically populated based on selected colors -->
               </div>
             </div>
 
@@ -520,10 +523,66 @@
 
       const modalEl = document.getElementById('product-modal');
       modalEl.classList.add('modal-overlay--open', 'active');
+      
+      // Keep track of the currently edited product's inventory so we can render the grid
+      this.currentModalProduct = p;
+      this.renderInventoryGrid();
     },
 
-    adjustStockCounter: function(size, delta) {
-      const input = document.getElementById(`size-${size}`);
+    handleColorChange: function(checkbox) {
+      checkbox.parentElement.style.background = checkbox.checked ? '#000' : '#FFF';
+      checkbox.parentElement.style.color = checkbox.checked ? '#FFF' : '#000';
+      this.renderInventoryGrid();
+    },
+
+    renderInventoryGrid: function() {
+      const container = document.getElementById('inventory-grid-container');
+      if (!container) return;
+
+      const selectedColorCheckboxes = Array.from(document.querySelectorAll('.prod-color-checkbox:checked')).map(cb => cb.value);
+      const customColorsInput = document.getElementById('prod-custom-colors')?.value || '';
+      const customColors = customColorsInput.split(',').map(c => c.trim()).filter(Boolean);
+      const allColors = Array.from(new Set([...selectedColorCheckboxes, ...customColors]));
+      
+      const finalColors = allColors.length > 0 ? allColors : ['Black'];
+      const sizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+      
+      let html = '';
+      finalColors.forEach(color => {
+        // If color exists in the old inventory, use those values
+        const existingStock = (this.currentModalProduct.inventory && this.currentModalProduct.inventory[color]) ? this.currentModalProduct.inventory[color] : {};
+        
+        html += `
+          <div style="margin-bottom: 24px;">
+            <div style="font-weight:700; font-size:14px; text-transform:uppercase; margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid #E5E5E5;">Color: ${color}</div>
+            <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:12px;">
+              ${sizesList.map(sz => {
+                // If it's a legacy edit, maybe it has p.sizes
+                let val = existingStock[sz] || 0;
+                if (!this.currentModalProduct.inventory && this.currentModalProduct.sizes && this.currentModalProduct.sizes[sz]) {
+                  val = this.currentModalProduct.sizes[sz];
+                }
+                return `
+                <div style="text-align:center;">
+                  <span style="font-weight:900; font-size:11px; text-transform:uppercase; display:block; margin-bottom:6px;">${sz}</span>
+                  <div class="counter-box" style="justify-content:center;">
+                    <button type="button" class="counter-btn" onclick="AdminApp.adjustStockCounter('${color}', '${sz}', -1)">-</button>
+                    <input type="number" class="counter-input" id="inv-${color.replace(/\s+/g, '')}-${sz}" value="${val}" min="0">
+                    <button type="button" class="counter-btn" onclick="AdminApp.adjustStockCounter('${color}', '${sz}', 1)">+</button>
+                  </div>
+                </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    },
+
+    adjustStockCounter: function(color, size, delta) {
+      const safeColor = color.replace(/\s+/g, '');
+      const input = document.getElementById(`inv-${safeColor}-${size}`);
       if (input) {
         let current = parseInt(input.value, 10) || 0;
         current = Math.max(0, current + delta);
@@ -603,13 +662,17 @@
       const allColors = Array.from(new Set([...selectedColorCheckboxes, ...customColors]));
       const finalColors = allColors.length > 0 ? allColors : ['Black'];
       
-      const sizesObj = {
-        S: Number(document.getElementById('size-S').value) || 0,
-        M: Number(document.getElementById('size-M').value) || 0,
-        L: Number(document.getElementById('size-L').value) || 0,
-        XL: Number(document.getElementById('size-XL').value) || 0,
-        XXL: Number(document.getElementById('size-XXL').value) || 0
-      };
+      const inventoryObj = {};
+      const sizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+      
+      finalColors.forEach(color => {
+        inventoryObj[color] = {};
+        const safeColor = color.replace(/\s+/g, '');
+        sizesList.forEach(sz => {
+          const input = document.getElementById(`inv-${safeColor}-${sz}`);
+          inventoryObj[color][sz] = input ? (Number(input.value) || 0) : 0;
+        });
+      });
 
       const newProduct = {
         id: productId || window.EclipseApp.generateId(),
@@ -619,7 +682,7 @@
         category: catVal,
         images: finalImages,
         colors: finalColors,
-        sizes: sizesObj,
+        inventory: inventoryObj,
         createdAt: productId ? window.EclipseStore.getProduct(productId).createdAt : new Date().toISOString()
       };
 

@@ -25,7 +25,23 @@
   const EclipseStore = {
     // PRODUCTS
     getProducts: function() {
-      return getData('eclipse_products') || [];
+      let products = getData('eclipse_products') || [];
+      // Backward compatibility migration for SKU-level inventory
+      let needsSave = false;
+      products = products.map(p => {
+        if (!p.inventory && p.sizes && p.colors) {
+          p.inventory = {};
+          p.colors.forEach(color => {
+            p.inventory[color] = Object.assign({ XS: 0 }, p.sizes);
+          });
+          needsSave = true;
+        }
+        return p;
+      });
+      if (needsSave) {
+        setData('eclipse_products', products);
+      }
+      return products;
     },
     getProduct: function(id) {
       return this.getProducts().find(p => p.id === id);
@@ -61,7 +77,17 @@
       const product = this.getProduct(productId);
       if (!product) return;
       
-      const itemColor = color || (product.colors && product.colors.length ? product.colors[0] : 'Black');
+      let itemColor = color;
+      
+      // If color was omitted (Quick Add), find the first color that has stock for this size
+      if (!itemColor) {
+        if (product.inventory) {
+          const availableColor = Object.keys(product.inventory).find(col => (product.inventory[col][size] || 0) > 0);
+          itemColor = availableColor || (product.colors && product.colors.length ? product.colors[0] : 'Black');
+        } else {
+          itemColor = (product.colors && product.colors.length ? product.colors[0] : 'Black');
+        }
+      }
       
       const existingIdx = cart.findIndex(item => item.productId === productId && item.size === size && (item.color || 'Black') === itemColor);
       if (existingIdx >= 0) {
@@ -210,37 +236,66 @@
             id: 'PROD-1', title: 'Unisex Summer Graphic Tee', description: 'Lightweight summer t-shirt in white, designed for both men and women. Breathable and comfortable for the hot Algerian summer.', price: 3500, category: 'T-Shirts',
             images: ['/img/summer1.jpg', '/img/summer2.jpg'],
             colors: ['White', 'Black', 'Beige'],
-            sizes: { S: 10, M: 20, L: 15, XL: 5 }, createdAt: new Date().toISOString()
+            inventory: {
+              'White': { XS: 2, S: 10, M: 20, L: 15, XL: 5, XXL: 0 },
+              'Black': { XS: 0, S: 10, M: 20, L: 15, XL: 5, XXL: 0 },
+              'Beige': { XS: 0, S: 10, M: 20, L: 15, XL: 5, XXL: 0 }
+            },
+            createdAt: new Date().toISOString()
           },
           {
             id: 'PROD-2', title: 'Eclipse Essential Summer Set', description: 'Matching unisex summer set consisting of a loose tee and lightweight shorts.', price: 6500, category: 'Sets',
             images: ['/img/summer2.jpg', '/img/summer1.jpg'],
             colors: ['Black', 'Grey', 'Navy'],
-            sizes: { S: 5, M: 10, L: 10, XL: 2 }, createdAt: new Date().toISOString()
+            inventory: {
+              'Black': { XS: 2, S: 5, M: 10, L: 10, XL: 2, XXL: 0 },
+              'Grey': { XS: 0, S: 5, M: 10, L: 10, XL: 2, XXL: 0 },
+              'Navy': { XS: 0, S: 5, M: 10, L: 10, XL: 2, XXL: 0 }
+            },
+            createdAt: new Date().toISOString()
           },
           {
             id: 'PROD-3', title: 'Lightweight Cargo Shorts', description: 'Utility shorts for summer days. Unisex fit with adjustable waist.', price: 4500, category: 'Shorts',
             images: ['/img/summer1.jpg', '/img/summer2.jpg'],
             colors: ['Olive', 'Black', 'Beige'],
-            sizes: { S: 8, M: 12, L: 8, XL: 4 }, createdAt: new Date().toISOString()
+            inventory: {
+              'Olive': { XS: 0, S: 8, M: 12, L: 8, XL: 4, XXL: 0 },
+              'Black': { XS: 0, S: 8, M: 12, L: 8, XL: 4, XXL: 0 },
+              'Beige': { XS: 0, S: 8, M: 12, L: 8, XL: 4, XXL: 0 }
+            },
+            createdAt: new Date().toISOString()
           },
           {
             id: 'PROD-4', title: 'Breezy Linen Shirt', description: 'Flowy linen shirt for beach days and summer nights. Fits all genders beautifully.', price: 5500, category: 'Shirts',
             images: ['/img/summer1.jpg', '/img/summer2.jpg'],
             colors: ['White', 'Cream', 'Beige'],
-            sizes: { S: 3, M: 6, L: 6, XL: 3 }, createdAt: new Date().toISOString()
+            inventory: {
+              'White': { XS: 2, S: 3, M: 6, L: 6, XL: 3, XXL: 0 },
+              'Cream': { XS: 0, S: 3, M: 6, L: 6, XL: 3, XXL: 0 },
+              'Beige': { XS: 0, S: 3, M: 6, L: 6, XL: 3, XXL: 0 }
+            },
+            createdAt: new Date().toISOString()
           },
           {
             id: 'PROD-5', title: 'Oversized Summer Tank', description: 'Sleeveless tank top with a relaxed unisex fit. Perfect for layering or wearing on its own.', price: 2800, category: 'T-Shirts',
             images: ['/img/summer2.jpg', '/img/summer1.jpg'],
             colors: ['Black', 'White'],
-            sizes: { S: 15, M: 25, L: 20, XL: 10 }, createdAt: new Date().toISOString()
+            inventory: {
+              'Black': { XS: 5, S: 15, M: 25, L: 20, XL: 10, XXL: 0 },
+              'White': { XS: 5, S: 15, M: 25, L: 20, XL: 10, XXL: 0 }
+            },
+            createdAt: new Date().toISOString()
           },
           {
             id: 'PROD-6', title: 'Eclipse Bucket Hat', description: 'Essential summer accessory. One size fits all, providing shade and style.', price: 2200, category: 'Accessories',
             images: ['/img/summer1.jpg', '/img/summer2.jpg'],
             colors: ['Black', 'White', 'Olive'],
-            sizes: { S: 10, M: 15, L: 10, XL: 5 }, createdAt: new Date().toISOString()
+            inventory: {
+              'Black': { XS: 0, S: 10, M: 15, L: 10, XL: 5, XXL: 0 },
+              'White': { XS: 0, S: 10, M: 15, L: 10, XL: 5, XXL: 0 },
+              'Olive': { XS: 0, S: 10, M: 15, L: 10, XL: 5, XXL: 0 }
+            },
+            createdAt: new Date().toISOString()
           }
         ];
         setData('eclipse_products', demoProducts);

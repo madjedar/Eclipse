@@ -21,7 +21,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             </a>
             <div class="product-card__hover-sizes">
               <span style="color:#FFF; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-right:4px; align-self:center; font-weight:800;">QUICK ADD:</span>
-              ${Object.keys(p.sizes).map(size => `
+              ${['XS', 'S', 'M', 'L', 'XL', 'XXL'].filter(size => {
+                if (p.inventory) {
+                  return Object.values(p.inventory).some(colorSizes => (colorSizes[size] || 0) > 0);
+                } else {
+                  return (p.sizes && p.sizes[size] > 0);
+                }
+              }).map(size => `
                 <button class="quick-size-btn" onclick="quickAddToCart('${p.id}', '${size}')">${size}</button>
               `).join('')}
             </div>

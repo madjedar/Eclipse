@@ -41,9 +41,7 @@ function renderPDP() {
     `<button class="color-pill ${col === selectedColor ? 'active' : ''}" onclick="selectColor(this, '${col}')">${col}</button>`
   ).join('');
 
-  const sizesHtml = Object.entries(currentProduct.sizes).map(([size, stock]) => 
-    `<button class="size-pill ${stock === 0 ? 'size-pill--out' : ''}" ${stock === 0 ? 'disabled' : ''} onclick="selectSize(this, '${size}', ${stock})">${size}</button>`
-  ).join('');
+  const sizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   content.innerHTML = `
     <div class="pdp-gallery">
@@ -63,7 +61,7 @@ function renderPDP() {
 
       <div style="margin-bottom:16px;">
         <div style="margin-bottom:8px;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:1px;">Size:</div>
-        <div class="size-selector">${sizesHtml}</div>
+        <div class="size-selector" id="size-selector-container"></div>
         <div id="stock-display" style="margin-top:8px;font-size:14px;color:var(--color-text-light);">Select a size</div>
       </div>
       
@@ -82,6 +80,31 @@ function renderPDP() {
       </div>
     </div>
   `;
+  renderSizes();
+}
+
+function renderSizes() {
+  const container = document.getElementById('size-selector-container');
+  if (!container) return;
+  
+  selectedSize = null;
+  document.getElementById('stock-display').textContent = 'Select a size';
+  document.getElementById('add-to-cart-btn').disabled = true;
+  document.getElementById('buy-now-btn').disabled = true;
+  document.getElementById('qty-input').value = 1;
+  quantity = 1;
+
+  const sizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const stockObj = (currentProduct.inventory && currentProduct.inventory[selectedColor]) 
+    ? currentProduct.inventory[selectedColor] 
+    : (currentProduct.sizes || {});
+
+  const sizesHtml = sizesList.map(size => {
+    const stock = stockObj[size] || 0;
+    return `<button class="size-pill ${stock === 0 ? 'size-pill--out' : ''}" ${stock === 0 ? 'disabled' : ''} onclick="selectSize(this, '${size}', ${stock})">${size}</button>`;
+  }).join('');
+
+  container.innerHTML = sizesHtml;
 }
 
 window.setMainImage = function(src, el) {
@@ -94,6 +117,7 @@ window.selectColor = function(btn, color) {
   document.querySelectorAll('.color-pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   selectedColor = color;
+  renderSizes();
 }
 
 window.selectSize = function(btn, size, stock) {
@@ -112,7 +136,10 @@ window.selectSize = function(btn, size, stock) {
 
 window.updateQty = function(change) {
   if(!selectedSize) return;
-  const maxStock = currentProduct.sizes[selectedSize];
+  const stockObj = (currentProduct.inventory && currentProduct.inventory[selectedColor]) 
+    ? currentProduct.inventory[selectedColor] 
+    : (currentProduct.sizes || {});
+  const maxStock = stockObj[selectedSize] || 0;
   let newQty = quantity + change;
   if(newQty >= 1 && newQty <= maxStock) {
     quantity = newQty;
