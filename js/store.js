@@ -183,7 +183,6 @@
     // SETTINGS
     getSettings: function() {
       const defaultSettings = {
-        adminPassword: 'samyxsamy',
         nordOuestApiToken: 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi',
         nordOuestGuid: 'N1L20U4L',
         nordOuestBaseUrl: 'https://app.noest-dz.com',
@@ -192,11 +191,17 @@
         storeName: 'Eclipse'
       };
       const saved = getData('eclipse_settings');
+      if (saved && saved.adminPassword) {
+        delete saved.adminPassword;
+        setData('eclipse_settings', saved);
+      }
       return saved ? Object.assign({}, defaultSettings, saved) : defaultSettings;
     },
     saveSettings: function(settings) {
-      setData('eclipse_settings', settings);
-      syncToServer('/api/store/settings', { settings });
+      const cleanSettings = Object.assign({}, settings);
+      delete cleanSettings.adminPassword;
+      setData('eclipse_settings', cleanSettings);
+      syncToServer('/api/store/settings', { settings: cleanSettings });
     },
 
     init: async function() {

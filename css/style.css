@@ -101,6 +101,18 @@ body {
   /* Light beam pulse removed in favor of dynamic glowing background spotlight */
 }
 
+/* HIDE TOPOGRAPHY BACKGROUND ON PRODUCT DETAILS TO KEEP IT CLEAN & CLEAR */
+body.product-page .topo-bg,
+body.product-page .topo-glow-overlay,
+.no-topo .topo-bg,
+.no-topo .topo-glow-overlay,
+body:has(#pdp-content) .topo-bg,
+body:has(#pdp-content) .topo-glow-overlay {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
 @keyframes topoNonStopFlow {
   0% {
     background-position: 0px 0px;

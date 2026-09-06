@@ -66,29 +66,36 @@
       if (errEl) errEl.style.display = 'none';
 
       const inputPwd = (password || '').trim();
-      const settings = (window.EclipseStore && window.EclipseStore.getSettings()) || {};
-      const storedPwd = (settings.adminPassword || 'samyxsamy').trim();
-
-      let isValid = (
-        inputPwd.toLowerCase() === storedPwd.toLowerCase() ||
-        inputPwd.toLowerCase() === 'samyxsamy' ||
-        inputPwd.toLowerCase() === 'eclipse2026'
-      );
-
-      if (!isValid) {
-        try {
-          const res = await fetch('/api/admin/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: inputPwd })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success) isValid = true;
-          }
-        } catch(e) {
-          console.warn('[Admin Login API Error]', e);
+      if (!inputPwd) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Sign In';
         }
+        if (errEl) {
+          errEl.innerText = 'Please enter your password';
+          errEl.style.display = 'block';
+        }
+        return;
+      }
+
+      let isValid = false;
+      let errorMessage = 'Invalid password. Please try again.';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: inputPwd })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          isValid = true;
+        } else if (data && data.error) {
+          errorMessage = data.error;
+        }
+      } catch(e) {
+        console.warn('[Admin Login API Error]', e);
+        errorMessage = 'Unable to connect to authentication server. Please try again.';
       }
 
       if (submitBtn) {
@@ -104,7 +111,7 @@
         this.showDashboard();
       } else {
         if (errEl) {
-          errEl.innerText = 'Invalid password. Please try samyxsamy or eclipse2026';
+          errEl.innerText = errorMessage;
           errEl.style.display = 'block';
         }
       }
@@ -1004,51 +1011,59 @@
     },
 
     changePassword: async function() {
-      const s = window.EclipseStore.getSettings();
       const current = document.getElementById('p-current').value;
       const newP = document.getElementById('p-new').value;
       const confirmP = document.getElementById('p-confirm').value;
       const msg = document.getElementById('p-msg');
 
-      const storedPwd = (s.adminPassword || 'samyxsamy').trim();
       const currentPwd = (current || '').trim();
+      const newPwd = (newP || '').trim();
+      const confirmPwd = (confirmP || '').trim();
 
-      if (!newP || newP !== confirmP) {
-        msg.innerText = 'New passwords do not match';
-        msg.style.color = 'red';
+      if (!currentPwd) {
+        msg.innerText = 'Please enter your current password';
+        msg.style.color = 'var(--color-error, #e53e3e)';
         return;
       }
 
-      let isValid = (
-        currentPwd.toLowerCase() === storedPwd.toLowerCase() ||
-        currentPwd.toLowerCase() === 'samyxsamy' ||
-        currentPwd.toLowerCase() === 'eclipse2026'
-      );
+      if (!newPwd) {
+        msg.innerText = 'New password cannot be empty';
+        msg.style.color = 'var(--color-error, #e53e3e)';
+        return;
+      }
+
+      if (newPwd !== confirmPwd) {
+        msg.innerText = 'New passwords do not match';
+        msg.style.color = 'var(--color-error, #e53e3e)';
+        return;
+      }
+
+      msg.innerText = 'Updating password...';
+      msg.style.color = 'var(--color-text-muted, #718096)';
 
       try {
         const res = await fetch('/api/admin/change-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ currentPassword: currentPwd, newPassword: newP })
+          body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd })
         });
-        if (res.ok) isValid = true;
-      } catch(e) {}
-
-      if (!isValid) {
-        msg.innerText = 'Current password incorrect';
-        msg.style.color = 'red';
-        return;
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          msg.innerText = 'Password changed successfully';
+          msg.style.color = 'var(--color-success, #38a169)';
+          document.getElementById('p-current').value = '';
+          document.getElementById('p-new').value = '';
+          document.getElementById('p-confirm').value = '';
+          if (window.EclipseApp) window.EclipseApp.showNotification('Password updated successfully', 'success');
+        } else {
+          msg.innerText = data.error || 'Current password incorrect';
+          msg.style.color = 'var(--color-error, #e53e3e)';
+        }
+      } catch(e) {
+        console.error('[Admin Change Password Error]', e);
+        msg.innerText = 'Failed to update password. Server connection error.';
+        msg.style.color = 'var(--color-error, #e53e3e)';
       }
-
-      s.adminPassword = newP;
-      window.EclipseStore.saveSettings(s);
-      
-      msg.innerText = 'Password changed successfully';
-      msg.style.color = 'green';
-      document.getElementById('p-current').value = '';
-      document.getElementById('p-new').value = '';
-      document.getElementById('p-confirm').value = '';
-      if (window.EclipseApp) window.EclipseApp.showNotification('Password updated', 'success');
     }
   };
 

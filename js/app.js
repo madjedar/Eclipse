@@ -487,6 +487,15 @@
     },
 
     initTopoBackground: function() {
+      // Hide topography lines on the product detail page for a clean, clear presentation
+      const isProductPage = document.body.classList.contains('product-page') || 
+                            document.body.classList.contains('no-topo') ||
+                            Boolean(document.getElementById('pdp-content')) || 
+                            window.location.pathname.toLowerCase().includes('product');
+      if (isProductPage) {
+        return;
+      }
+
       if (!document.getElementById('topo-bg-layer')) {
         const bg = document.createElement('div');
         bg.id = 'topo-bg-layer';

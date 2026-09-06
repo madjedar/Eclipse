@@ -142,45 +142,6 @@ app.all('/api/nord-ouest/*', async (req, res) => {
   }
 });
 
-// ─── Admin Authentication API ──────────────────────────────────────
-let activeAdminPassword = process.env.ADMIN_PASSWORD || 'samyxsamy';
-
-app.post('/api/admin/login', async (req, res) => {
-  const { password } = req.body || {};
-  const inputPwd = (password || '').trim().toLowerCase();
-  const currentPwd = activeAdminPassword.trim().toLowerCase();
-
-  let settings = {};
-  const activeDb = await getDb();
-  if (activeDb) {
-    const doc = await activeDb.collection('store').findOne({ _id: 'settings' });
-    if (doc) settings = doc.data;
-  } else {
-    settings = readJsonFile('settings.json', {});
-  }
-
-  const savedPwd = (settings && settings.adminPassword) ? settings.adminPassword.trim().toLowerCase() : '';
-
-  if (inputPwd === currentPwd || (savedPwd && inputPwd === savedPwd) || inputPwd === 'samyxsamy' || inputPwd === 'eclipse2026') {
-    return res.json({ success: true });
-  }
-  return res.status(401).json({ success: false, error: 'Invalid password' });
-});
-
-app.post('/api/admin/change-password', (req, res) => {
-  const { currentPassword, newPassword } = req.body || {};
-  const inputCur = (currentPassword || '').trim().toLowerCase();
-  const currentPwd = activeAdminPassword.trim().toLowerCase();
-
-  if (inputCur === currentPwd || inputCur === 'samyxsamy' || inputCur === 'eclipse2026') {
-    if (newPassword && newPassword.trim()) {
-      activeAdminPassword = newPassword.trim();
-      return res.json({ success: true, message: 'Password updated on server' });
-    }
-  }
-  return res.status(400).json({ success: false, error: 'Current password incorrect' });
-});
-
 const DATA_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) 
   ? path.join('/tmp', 'data') 
   : path.join(__dirname, 'data');
@@ -214,6 +175,92 @@ function writeJsonFile(filename, data) {
     return false;
   }
 }
+
+// ─── Admin Authentication API ──────────────────────────────────────
+let activeAdminPassword = (process.env.ADMIN_PASSWORD || 'samyxsamy').trim();
+
+async function getValidAdminPassword() {
+  const activeDb = await getDb();
+  if (activeDb) {
+    const authDoc = await activeDb.collection('store').findOne({ _id: 'admin_auth' });
+    if (authDoc && authDoc.password) {
+      return authDoc.password.trim();
+    }
+    const settingsDoc = await activeDb.collection('store').findOne({ _id: 'settings' });
+    if (settingsDoc && settingsDoc.data && settingsDoc.data.adminPassword) {
+      return settingsDoc.data.adminPassword.trim();
+    }
+  } else {
+    const authData = readJsonFile('admin_auth.json', null);
+    if (authData && authData.password) {
+      return authData.password.trim();
+    }
+    const settings = readJsonFile('settings.json', {});
+    if (settings && settings.adminPassword) {
+      return settings.adminPassword.trim();
+    }
+  }
+  return activeAdminPassword;
+}
+
+app.post('/api/admin/login', async (req, res) => {
+  const { password } = req.body || {};
+  const inputPwd = (password || '').trim();
+
+  if (!inputPwd) {
+    return res.status(400).json({ success: false, error: 'Password is required' });
+  }
+
+  const validPwd = await getValidAdminPassword();
+
+  if (inputPwd === validPwd) {
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ success: false, error: 'Invalid password' });
+});
+
+app.post('/api/admin/change-password', async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  const inputCur = (currentPassword || '').trim();
+  const newPwd = (newPassword || '').trim();
+
+  if (!inputCur) {
+    return res.status(400).json({ success: false, error: 'Current password is required' });
+  }
+  if (!newPwd) {
+    return res.status(400).json({ success: false, error: 'New password cannot be empty' });
+  }
+
+  const validPwd = await getValidAdminPassword();
+
+  if (inputCur !== validPwd) {
+    return res.status(401).json({ success: false, error: 'Current password incorrect' });
+  }
+
+  activeAdminPassword = newPwd;
+
+  const activeDb = await getDb();
+  if (activeDb) {
+    await activeDb.collection('store').updateOne(
+      { _id: 'admin_auth' },
+      { $set: { password: newPwd, updatedAt: new Date().toISOString() } },
+      { upsert: true }
+    );
+    await activeDb.collection('store').updateOne(
+      { _id: 'settings' },
+      { $unset: { "data.adminPassword": "" } }
+    );
+  } else {
+    writeJsonFile('admin_auth.json', { password: newPwd, updatedAt: new Date().toISOString() });
+    const localSettings = readJsonFile('settings.json', {});
+    if (localSettings && localSettings.adminPassword) {
+      delete localSettings.adminPassword;
+      writeJsonFile('settings.json', localSettings);
+    }
+  }
+
+  return res.json({ success: true, message: 'Password updated successfully' });
+});
 
 // ─── Products API Persistence ───────────────────────────────────────
 app.get('/api/store/products', async (req, res) => {
@@ -299,17 +346,24 @@ app.get('/api/store/settings', async (req, res) => {
   } else {
     settings = readJsonFile('settings.json', null);
   }
+  if (settings && typeof settings === 'object') {
+    const safeSettings = Object.assign({}, settings);
+    delete safeSettings.adminPassword; // Never leak admin password to public clients
+    return res.json({ success: true, settings: safeSettings });
+  }
   res.json({ success: true, settings });
 });
 
 app.post('/api/store/settings', async (req, res) => {
   const { settings } = req.body || {};
   if (settings && typeof settings === 'object') {
+    const safeSettings = Object.assign({}, settings);
+    delete safeSettings.adminPassword; // Prevent modifying admin password via public settings
     const activeDb = await getDb();
     if (activeDb) {
-      await activeDb.collection('store').updateOne({ _id: 'settings' }, { $set: { data: settings } }, { upsert: true });
+      await activeDb.collection('store').updateOne({ _id: 'settings' }, { $set: { data: safeSettings } }, { upsert: true });
     } else {
-      writeJsonFile('settings.json', settings);
+      writeJsonFile('settings.json', safeSettings);
     }
     return res.json({ success: true });
   }
