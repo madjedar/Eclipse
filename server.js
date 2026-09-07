@@ -316,49 +316,99 @@ app.post('/api/store/products', async (req, res) => {
 
 // ─── Orders API Persistence ─────────────────────────────────────────
 app.get('/api/store/orders', async (req, res) => {
-  const activeDb = await getDb();
-  let orders = [];
-  if (activeDb) {
-    const doc = await activeDb.collection('store').findOne({ _id: 'orders' });
-    if (doc && Array.isArray(doc.data)) orders = doc.data;
-  } else {
-    orders = readJsonFile('orders.json', []);
+  try {
+    const activeDb = await getDb();
+    let orders = [];
+    if (activeDb) {
+      const doc = await activeDb.collection('store').findOne({ _id: 'orders' });
+      if (doc && Array.isArray(doc.data)) orders = doc.data;
+    } else {
+      orders = readJsonFile('orders.json', []);
+    }
+
+    // Ensure all orders have valid dates and timestamps for proper sorting
+    orders.forEach(o => {
+      if (!o) return;
+      if (!o.date && !o.createdAt) {
+        o.date = new Date().toISOString();
+        o.createdAt = o.date;
+      } else if (!o.createdAt) {
+        o.createdAt = o.date;
+      } else if (!o.date) {
+        o.date = o.createdAt;
+      }
+    });
+
+    res.json({ success: true, orders });
+  } catch (err) {
+    console.error('[Get Orders Error]', err);
+    const fallbackOrders = readJsonFile('orders.json', []);
+    res.json({ success: true, orders: fallbackOrders });
   }
-  res.json({ success: true, orders });
 });
 
 app.post('/api/store/orders', async (req, res) => {
-  const incoming = (req.body && req.body.orders) || [];
-  if (!Array.isArray(incoming)) {
-    return res.status(400).json({ success: false, error: 'Invalid orders data' });
-  }
-
-  const activeDb = await getDb();
-  let existingOrders = [];
-  if (activeDb) {
-    const doc = await activeDb.collection('store').findOne({ _id: 'orders' });
-    if (doc && Array.isArray(doc.data)) existingOrders = doc.data;
-  } else {
-    existingOrders = readJsonFile('orders.json', []);
-  }
-
-  // Merge incoming orders with database orders so no order is ever overwritten
-  incoming.forEach(inc => {
-    if (!inc || !inc.id) return;
-    const idx = existingOrders.findIndex(o => o.id === inc.id);
-    if (idx >= 0) {
-      existingOrders[idx] = Object.assign({}, existingOrders[idx], inc);
-    } else {
-      existingOrders.push(inc);
+  try {
+    let incoming = [];
+    if (Array.isArray(req.body?.orders)) {
+      incoming = req.body.orders;
+    } else if (req.body?.order && typeof req.body.order === 'object') {
+      incoming = [req.body.order];
+    } else if (req.body?.id) {
+      incoming = [req.body];
     }
-  });
 
-  if (activeDb) {
-    await activeDb.collection('store').updateOne({ _id: 'orders' }, { $set: { data: existingOrders } }, { upsert: true });
-  } else {
+    if (!incoming.length && !Array.isArray(req.body?.orders)) {
+      return res.status(400).json({ success: false, error: 'Invalid orders data' });
+    }
+
+    const activeDb = await getDb();
+    let existingOrders = [];
+    if (activeDb) {
+      const doc = await activeDb.collection('store').findOne({ _id: 'orders' });
+      if (doc && Array.isArray(doc.data)) existingOrders = doc.data;
+    } else {
+      existingOrders = readJsonFile('orders.json', []);
+    }
+
+    // Merge incoming orders with database orders so no order is ever overwritten
+    incoming.forEach(inc => {
+      if (!inc || !inc.id) return;
+      const nowIso = new Date().toISOString();
+      if (!inc.date && !inc.createdAt) {
+        inc.date = nowIso;
+        inc.createdAt = nowIso;
+      } else if (!inc.createdAt) {
+        inc.createdAt = inc.date;
+      } else if (!inc.date) {
+        inc.date = inc.createdAt;
+      }
+
+      const idx = existingOrders.findIndex(o => o.id === inc.id);
+      if (idx >= 0) {
+        existingOrders[idx] = Object.assign({}, existingOrders[idx], inc);
+      } else {
+        existingOrders.push(inc);
+      }
+    });
+
+    if (activeDb) {
+      await activeDb.collection('store').updateOne(
+        { _id: 'orders' }, 
+        { $set: { data: existingOrders, updatedAt: new Date().toISOString() } }, 
+        { upsert: true }
+      );
+      console.log(`[Store Orders] Successfully synced ${existingOrders.length} orders to MongoDB.`);
+    }
+    
+    // Always write backup locally as well
     writeJsonFile('orders.json', existingOrders);
+
+    return res.json({ success: true, count: existingOrders.length });
+  } catch (err) {
+    console.error('[Store Orders Save Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
-  return res.json({ success: true, count: existingOrders.length });
 });
 
 // ─── Settings API Persistence ───────────────────────────────────────

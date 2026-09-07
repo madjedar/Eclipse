@@ -10,6 +10,61 @@
 
       this.bindEvents();
       this.initRouter();
+      this.startAutoPolling();
+    },
+
+    startAutoPolling: function() {
+      if (this._pollingInterval) clearInterval(this._pollingInterval);
+      this._pollingInterval = setInterval(async () => {
+        const isLoggedIn = sessionStorage.getItem('eclipse_admin_logged_in');
+        if (isLoggedIn !== 'true' || document.hidden) return;
+        try {
+          if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
+            await window.EclipseStore.fetchLatestOrders();
+          }
+          if (window.location.hash === '#orders') {
+            this.updateOrdersTable();
+          }
+        } catch (e) {}
+      }, 25000);
+    },
+
+    refreshOrders: async function() {
+      const btns = [document.getElementById('refresh-orders-btn'), document.getElementById('refresh-dashboard-btn')].filter(Boolean);
+      btns.forEach(b => {
+        b.disabled = true;
+        b.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> Refreshing...`;
+      });
+
+      try {
+        if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
+          await window.EclipseStore.fetchLatestOrders();
+        }
+        if (window.location.hash === '#orders') {
+          this.updateOrdersTable();
+        } else if (window.location.hash === '#dashboard' || !window.location.hash || window.location.hash === '#') {
+          const content = document.getElementById('admin-content');
+          if (content) {
+            content.innerHTML = `
+              <button class="admin-sidebar-expand-btn" onclick="AdminApp.toggleSidebarCollapsed()" title="Show Sidebar Menu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M12 10l3 3-3 3"></path></svg>
+                <span>Show Menu</span>
+              </button>
+            `;
+            await this.renderDashboard(content);
+          }
+        }
+        if (window.EclipseApp && window.EclipseApp.showNotification) {
+          window.EclipseApp.showNotification('Orders refreshed from database', 'success');
+        }
+      } catch(e) {
+        console.error('[Refresh Error]', e);
+      } finally {
+        btns.forEach(b => {
+          b.disabled = false;
+          b.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Refresh Orders</span>`;
+        });
+      }
     },
 
     bindEvents: function() {
@@ -118,6 +173,7 @@
     },
 
     logout: function() {
+      if (this._pollingInterval) clearInterval(this._pollingInterval);
       sessionStorage.removeItem('eclipse_admin_logged_in');
       window.location.hash = '';
       this.showLogin();
@@ -262,11 +318,19 @@
         .sort((a,b) => b.count - a.count)
         .slice(0, 5);
 
-      const recentOrders = [...orders].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 10);
+      const recentOrders = [...orders].sort((a, b) => {
+        const timeB = new Date(b.createdAt || b.date || 0).getTime();
+        const timeA = new Date(a.createdAt || a.date || 0).getTime();
+        return timeB - timeA;
+      }).slice(0, 10);
 
       const html = `
-        <div class="admin-topbar">
+        <div class="admin-topbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
           <h1 class="admin-topbar__title">Dashboard</h1>
+          <button class="btn btn--secondary" onclick="AdminApp.refreshOrders()" id="refresh-dashboard-btn" style="display:flex; align-items:center; gap:8px; font-size:13px; padding:8px 14px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Refresh</span>
+          </button>
         </div>
         <div class="dashboard-stats" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 32px;">
           <div class="stat-card" style="background:#fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -306,18 +370,18 @@
                 <tbody>
                   ${recentOrders.length ? recentOrders.map(o => {
                     const cust = (o && o.customer) ? o.customer : {};
-                    const custName = (cust.firstName || cust.name || 'Customer') + ' ' + (cust.lastName || '');
+                    const custName = (cust.firstName || cust.name || 'Customer') + (cust.lastName ? ' ' + cust.lastName : '');
                     return `
                     <tr style="border-bottom:1px solid #eee; cursor:pointer;" onclick="AdminApp.openOrderModal('${o.id}')">
-                      <td style="padding: 12px 0;">${o.id || ''}</td>
+                      <td style="padding: 12px 0; font-weight:600; font-family:monospace;">${o.id || ''}</td>
                       <td style="padding: 12px 0;">${custName}</td>
                       <td style="padding: 12px 0;">${cust.wilaya || 'N/A'}</td>
                       <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'NOEST Logistics'}</span></td>
-                      <td style="padding: 12px 0;">${formatPrice(o.total)}</td>
-                      <td style="padding: 12px 0;">${this.renderStatusBadge(o.status)}</td>
+                      <td style="padding: 12px 0; font-weight:600;">${formatPrice(o.total)}</td>
+                      <td style="padding: 12px 0;">${this.renderStatusBadge(o.status || 'pending')}</td>
                       <td style="padding: 12px 0; color:var(--color-text-muted); font-size:14px;">${this.formatDate(o.createdAt || o.date)}</td>
                     </tr>
-                  `}).join('') : '<tr><td colspan="7" style="padding:12px;text-align:center;">No orders yet.</td></tr>'}
+                  `}).join('') : '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--color-text-muted);">No orders yet.</td></tr>'}
                 </tbody>
               </table>
             </div>
@@ -794,6 +858,10 @@
       const html = `
         <div class="admin-topbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
           <h1 class="admin-topbar__title">Orders</h1>
+          <button class="btn btn--secondary" onclick="AdminApp.refreshOrders()" id="refresh-orders-btn" style="display:flex; align-items:center; gap:8px; font-size:13px; padding:8px 14px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Refresh Orders</span>
+          </button>
         </div>
         <div style="margin-bottom:24px; display:flex; gap:12px;">
           ${filters.map(f => `
@@ -818,9 +886,23 @@
     updateOrdersTable: function() {
       const container = document.getElementById('orders-table-container');
       if (!container) return;
-      const orders = window.EclipseStore.getOrders();
+      const orders = window.EclipseStore.getOrders() || [];
       const currentFilter = window.adminOrdersFilter || 'All';
-      const filteredOrders = currentFilter === 'All' ? orders : orders.filter(o => o.status.toLowerCase() === currentFilter.toLowerCase());
+      
+      const filteredOrders = currentFilter === 'All' 
+        ? orders 
+        : orders.filter(o => {
+            const st = (o && o.status ? String(o.status).trim().toLowerCase() : 'pending');
+            return st === currentFilter.toLowerCase();
+          });
+
+      const sortedOrders = [...filteredOrders].sort((a, b) => {
+        const timeB = new Date(b.createdAt || b.date || 0).getTime();
+        const timeA = new Date(a.createdAt || a.date || 0).getTime();
+        return timeB - timeA;
+      });
+
+      const formatPrice = (window.EclipseApp && window.EclipseApp.formatPrice) ? window.EclipseApp.formatPrice : (n => (n || 0) + ' DA');
 
       container.innerHTML = `
         <div style="background:#fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 24px; overflow-x:auto;">
@@ -840,22 +922,29 @@
               </tr>
             </thead>
             <tbody>
-              ${filteredOrders.length ? [...filteredOrders].sort((a,b)=>new Date(b.createdAt || b.date)-new Date(a.createdAt || a.date)).map(o => `
+              ${sortedOrders.length ? sortedOrders.map(o => {
+                const cust = (o && o.customer) ? o.customer : {};
+                const custName = (cust.firstName || cust.name || 'Customer') + (cust.lastName ? ' ' + cust.lastName : '');
+                const phone = cust.phone || 'N/A';
+                const wilaya = cust.wilaya || 'N/A';
+                const carrier = o.shippingCarrier || 'Norris Logistics (Nord et Ouest)';
+
+                return `
                 <tr style="border-bottom:1px solid #eee;">
-                  <td style="padding: 12px 0;">${o.id}</td>
-                  <td style="padding: 12px 0;">${o.customer.firstName || o.customer.name} ${o.customer.lastName || ''}</td>
-                  <td style="padding: 12px 0;">${o.customer.phone}</td>
-                  <td style="padding: 12px 0;">${o.customer.wilaya}</td>
-                  <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${o.shippingCarrier || 'Norris Logistics (Nord et Ouest)'}</span></td>
-                  <td style="padding: 12px 0;">${window.EclipseApp.formatPrice(o.total)}</td>
-                  <td style="padding: 12px 0;">${this.renderStatusBadge(o.status)}</td>
+                  <td style="padding: 12px 0; font-weight:600; font-family:monospace;">${o.id || ''}</td>
+                  <td style="padding: 12px 0;">${custName}</td>
+                  <td style="padding: 12px 0;"><a href="tel:${phone}" style="color:inherit;text-decoration:none;">${phone}</a></td>
+                  <td style="padding: 12px 0;">${wilaya}</td>
+                  <td style="padding: 12px 0;"><span class="status-badge" style="background:#000; color:#fff;">${carrier}</span></td>
+                  <td style="padding: 12px 0; font-weight:600;">${formatPrice(o.total)}</td>
+                  <td style="padding: 12px 0;">${this.renderStatusBadge(o.status || 'pending')}</td>
                   <td style="padding: 12px 0; font-family:monospace;">${o.nordOuestTracking || '-'}</td>
                   <td style="padding: 12px 0; color:var(--color-text-muted); font-size:14px;">${this.formatDate(o.createdAt || o.date)}</td>
                   <td style="padding: 12px 0; text-align:right;">
                     <button class="btn" style="padding:6px 12px; font-size:12px;" onclick="AdminApp.openOrderModal('${o.id}')">View</button>
                   </td>
                 </tr>
-              `).join('') : '<tr><td colspan="10" style="padding:12px;text-align:center;">No orders found.</td></tr>'}
+              `}).join('') : '<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--color-text-muted);">No orders found for this filter.</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -869,25 +958,36 @@
       const body = document.getElementById('order-modal-body');
       document.getElementById('order-modal-title').innerText = `Order Details - ${o.id}`;
 
+      const cust = (o && o.customer) ? o.customer : {};
+      const custName = (cust.firstName || cust.name || 'Customer') + (cust.lastName ? ' ' + cust.lastName : '');
+      const phone = cust.phone || 'N/A';
+      const wilaya = cust.wilaya || 'N/A';
+      const wilayaCode = cust.wilayaCode ? ` (${cust.wilayaCode})` : '';
+      const commune = cust.commune ? ` - ${cust.commune}` : '';
+      const address = cust.address || 'N/A';
+      const deliveryType = cust.deliveryType === 'home' ? 'Home Delivery' : 'Desk Delivery (Stop Desk)';
+      const items = Array.isArray(o.items) ? o.items : [];
+      const formatPrice = (window.EclipseApp && window.EclipseApp.formatPrice) ? window.EclipseApp.formatPrice : (n => (n || 0) + ' DA');
+
       body.innerHTML = `
         <div style="display:flex; justify-content:space-between; margin-bottom:24px;">
           <div>
-            <p style="color:var(--color-text-muted); font-size:14px;">Date: ${this.formatDate(o.createdAt)}</p>
+            <p style="color:var(--color-text-muted); font-size:14px;">Date: ${this.formatDate(o.createdAt || o.date)}</p>
           </div>
-          <div>${this.renderStatusBadge(o.status)}</div>
+          <div>${this.renderStatusBadge(o.status || 'pending')}</div>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:24px; background:#f9f9f9; padding:16px; border-radius:8px;">
           <div>
             <h4 style="margin-bottom:8px;">Customer</h4>
-            <p>${o.customer.firstName} ${o.customer.lastName}</p>
-            <p>${o.customer.phone}</p>
+            <p style="font-weight:600;">${custName}</p>
+            <p><a href="tel:${phone}" style="color:inherit;">${phone}</a></p>
           </div>
           <div>
             <h4 style="margin-bottom:8px;">Delivery</h4>
-            <p>${o.customer.wilaya} (${o.customer.wilayaCode}) - ${o.customer.commune}</p>
-            <p>${o.customer.address}</p>
-            <p style="color:var(--color-text-muted); font-size:14px; margin-top:4px;">Type: ${o.customer.deliveryType === 'home' ? 'Home Delivery' : 'Desk Delivery'}</p>
+            <p>${wilaya}${wilayaCode}${commune}</p>
+            <p>${address}</p>
+            <p style="color:var(--color-text-muted); font-size:14px; margin-top:4px;">Type: ${deliveryType}</p>
           </div>
         </div>
 
@@ -903,22 +1003,22 @@
             </tr>
           </thead>
           <tbody>
-            ${o.items.map(item => `
+            ${items.length ? items.map(item => `
               <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:12px 0;">${item.title}</td>
-                <td style="padding:12px 0;">${item.size}</td>
+                <td style="padding:12px 0;">${item.title || 'Product'}</td>
+                <td style="padding:12px 0;">${item.size || '-'}</td>
                 <td style="padding:12px 0;">${item.color || 'Standard'}</td>
-                <td style="padding:12px 0;">${item.qty || item.quantity}</td>
-                <td style="padding:12px 0; text-align:right;">${window.EclipseApp.formatPrice(item.price)}</td>
+                <td style="padding:12px 0;">${item.qty || item.quantity || 1}</td>
+                <td style="padding:12px 0; text-align:right;">${formatPrice(item.price)}</td>
               </tr>
-            `).join('')}
+            `).join('') : '<tr><td colspan="5" style="padding:12px 0;text-align:center;">No items recorded.</td></tr>'}
           </tbody>
         </table>
 
         <div style="text-align:right; margin-bottom:24px;">
-          <p>Subtotal: <strong>${window.EclipseApp.formatPrice(o.subtotal)}</strong></p>
-          <p>Shipping: <strong>${window.EclipseApp.formatPrice(o.shippingFee)}</strong></p>
-          <p style="font-size:18px; margin-top:8px;">Total: <strong>${window.EclipseApp.formatPrice(o.total)}</strong></p>
+          <p>Subtotal: <strong>${formatPrice(o.subtotal)}</strong></p>
+          <p>Shipping: <strong>${formatPrice(o.shippingFee)}</strong></p>
+          <p style="font-size:18px; margin-top:8px;">Total: <strong>${formatPrice(o.total)}</strong></p>
         </div>
 
         <div style="margin-bottom:24px; padding-top:24px; border-top:1px solid #eee;">
@@ -957,7 +1057,7 @@
           const res = await window.NordOuestAPI.createParcel(o);
           if (res && res.trackingNumber) {
             o.nordOuestTracking = res.trackingNumber;
-            window.EclipseStore.saveOrder(o);
+            await window.EclipseStore.saveOrder(o);
             if (window.EclipseApp && window.EclipseApp.showNotification) {
               window.EclipseApp.showNotification('Dispatched to NOEST Express! Tracking: ' + res.trackingNumber, 'success');
             }
@@ -978,16 +1078,21 @@
       }
     },
 
-    updateOrderStatus: function(orderId) {
+    updateOrderStatus: async function(orderId) {
       const newStatus = document.getElementById('update-status-select').value;
       const o = window.EclipseStore.getOrder(orderId);
-      window.EclipseStore.updateOrderStatus(orderId, newStatus, o.nordOuestTracking);
+      if (o) {
+        await window.EclipseStore.updateOrderStatus(orderId, newStatus, o.nordOuestTracking);
+      }
       if (window.EclipseApp && window.EclipseApp.showNotification) {
-        window.EclipseApp.showNotification('Status updated', 'success');
+        window.EclipseApp.showNotification('Status updated in database', 'success');
       }
       this.openOrderModal(orderId);
       if (window.location.hash === '#orders') {
         this.updateOrdersTable();
+      } else if (window.location.hash === '#dashboard' || !window.location.hash || window.location.hash === '#') {
+        const content = document.getElementById('admin-content');
+        if (content) this.renderDashboard(content);
       }
     },
 

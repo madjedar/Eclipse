@@ -168,11 +168,20 @@
         if (res.ok) {
           const data = await res.json();
           if (data.success && Array.isArray(data.orders)) {
-            setData('eclipse_orders', data.orders);
-            return data.orders;
+            const localOrders = getData('eclipse_orders') || [];
+            const merged = [...data.orders];
+            localOrders.forEach(loc => {
+              if (loc && loc.id && !merged.some(m => m.id === loc.id)) {
+                merged.push(loc);
+              }
+            });
+            setData('eclipse_orders', merged);
+            return merged;
           }
         }
-      } catch(e) {}
+      } catch(e) {
+        console.warn('[Fetch Orders Error]', e);
+      }
       return this.getOrders();
     },
     fetchLatestProducts: async function() {
@@ -194,24 +203,52 @@
     getOrder: function(id) {
       return this.getOrders().find(o => o.id === id);
     },
-    saveOrder: function(order) {
+    saveOrder: async function(order) {
+      if (!order) return { success: false, error: 'No order data' };
+      const nowIso = new Date().toISOString();
+      if (!order.date && !order.createdAt) {
+        order.date = nowIso;
+        order.createdAt = nowIso;
+      } else if (!order.createdAt) {
+        order.createdAt = order.date;
+      } else if (!order.date) {
+        order.date = order.createdAt;
+      }
+
       let orders = this.getOrders();
       const idx = orders.findIndex(o => o.id === order.id);
       if (idx >= 0) {
-        orders[idx] = order;
+        orders[idx] = Object.assign({}, orders[idx], order);
       } else {
         orders.push(order);
       }
       setData('eclipse_orders', orders);
-      syncToServer('/api/store/orders', { orders });
+
+      try {
+        const res = await fetch('/api/store/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order, orders }),
+          keepalive: true
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return { success: true, count: data.count };
+        }
+        return { success: false, error: 'Server returned ' + res.status };
+      } catch (err) {
+        console.warn('[Save Order Server Error]', err);
+        return { success: false, error: err.message };
+      }
     },
-    updateOrderStatus: function(id, status, tracking = null) {
+    updateOrderStatus: async function(id, status, tracking = null) {
       let order = this.getOrder(id);
       if (order) {
         order.status = status;
         if (tracking) order.nordOuestTracking = tracking;
-        this.saveOrder(order);
+        return await this.saveOrder(order);
       }
+      return { success: false, error: 'Order not found' };
     },
 
     // SETTINGS

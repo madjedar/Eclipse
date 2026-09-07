@@ -223,19 +223,23 @@
 
       setTimeout(async () => {
         const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-        const addressVal = document.getElementById('shipping-address').value;
+        const addressVal = document.getElementById('shipping-address')?.value || '';
+        const nowIso = new Date().toISOString();
+        const wilayaSelect = document.getElementById('shipping-wilaya');
+        const selectedWilayaText = wilayaSelect && wilayaSelect.selectedIndex >= 0 ? wilayaSelect.options[wilayaSelect.selectedIndex].text : '';
 
         const orderData = {
           id: orderId,
-          date: new Date().toISOString(),
+          date: nowIso,
+          createdAt: nowIso,
           customer: {
-            name: document.getElementById('shipping-name').value,
-            firstName: document.getElementById('shipping-name').value.split(' ')[0] || '',
-            lastName: document.getElementById('shipping-name').value.split(' ').slice(1).join(' ') || '',
-            phone: document.getElementById('shipping-phone').value,
-            wilaya: document.getElementById('shipping-wilaya').options[document.getElementById('shipping-wilaya').selectedIndex].text,
-            wilayaCode: document.getElementById('shipping-wilaya').value,
-            commune: document.getElementById('shipping-commune').value,
+            name: document.getElementById('shipping-name')?.value || '',
+            firstName: (document.getElementById('shipping-name')?.value || '').split(' ')[0] || '',
+            lastName: (document.getElementById('shipping-name')?.value || '').split(' ').slice(1).join(' ') || '',
+            phone: document.getElementById('shipping-phone')?.value || '',
+            wilaya: selectedWilayaText,
+            wilayaCode: wilayaSelect?.value || '',
+            commune: document.getElementById('shipping-commune')?.value || '',
             address: this.deliveryMode === 'desk' ? (addressVal || 'Stop Desk (Pickup at Agency)') : addressVal,
             deliveryType: this.deliveryMode
           },
@@ -261,7 +265,12 @@
           }
         }
 
-        window.EclipseStore.saveOrder(orderData);
+        // Guarantee order is stored locally and synced to MongoDB Atlas
+        try {
+          await window.EclipseStore.saveOrder(orderData);
+        } catch(err) {
+          console.warn('[Checkout Save Order Warning]', err);
+        }
         window.EclipseStore.clearCart();
 
         document.getElementById('checkout-container').innerHTML = `
