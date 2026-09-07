@@ -170,12 +170,22 @@
           if (data.success && Array.isArray(data.orders)) {
             const localOrders = getData('eclipse_orders') || [];
             const merged = [...data.orders];
+            const unSynced = [];
             localOrders.forEach(loc => {
               if (loc && loc.id && !merged.some(m => m.id === loc.id)) {
                 merged.push(loc);
+                unSynced.push(loc);
               }
             });
             setData('eclipse_orders', merged);
+            if (unSynced.length > 0) {
+              fetch('/api/store/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orders: unSynced }),
+                keepalive: true
+              }).catch(() => {});
+            }
             return merged;
           }
         }
@@ -288,13 +298,7 @@
           }
         }
 
-        const ordRes = await fetch('/api/store/orders', { cache: 'no-store' });
-        if (ordRes.ok) {
-          const ordData = await ordRes.json();
-          if (ordData.success && Array.isArray(ordData.orders)) {
-            setData('eclipse_orders', ordData.orders);
-          }
-        }
+        await this.fetchLatestOrders();
 
         const setRes = await fetch('/api/store/settings', { cache: 'no-store' });
         if (setRes.ok) {

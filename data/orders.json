@@ -30,7 +30,8 @@
     "shippingFee": 400,
     "total": 4400,
     "status": "pending",
-    "nordOuestTracking": "N1L-23A-19427297"
+    "nordOuestTracking": "N1L-23A-19427297",
+    "createdAt": "2026-08-09T00:56:20.976Z"
   },
   {
     "id": "ORD-859404",
@@ -63,7 +64,8 @@
     "shippingFee": 600,
     "total": 4600,
     "status": "pending",
-    "nordOuestTracking": "N1L-23A-19427300"
+    "nordOuestTracking": "N1L-23A-19427300",
+    "createdAt": "2026-08-09T00:58:48.741Z"
   },
   {
     "id": "ORD-584208",
@@ -96,7 +98,8 @@
     "shippingFee": 400,
     "total": 4400,
     "status": "pending",
-    "nordOuestTracking": "N1L-23A-19427320"
+    "nordOuestTracking": "N1L-23A-19427320",
+    "createdAt": "2026-08-09T01:11:52.507Z"
   },
   {
     "id": "ORD-995995",
@@ -129,7 +132,8 @@
     "shippingFee": 600,
     "total": 4600,
     "status": "pending",
-    "nordOuestTracking": "N1L-23A-19458384"
+    "nordOuestTracking": "N1L-23A-19458384",
+    "createdAt": "2026-08-10T00:08:09.031Z"
   },
   {
     "id": "ORD-647116",
@@ -162,7 +166,8 @@
     "shippingFee": 400,
     "total": 4400,
     "status": "pending",
-    "nordOuestTracking": "N1L-23A-19488876"
+    "nordOuestTracking": "N1L-23A-19488876",
+    "createdAt": "2026-08-11T00:16:09.788Z"
   },
   {
     "id": "ORD-273923",
@@ -204,7 +209,8 @@
     "shippingFee": 500,
     "total": 8300,
     "status": "pending",
-    "nordOuestTracking": "NO-71697752"
+    "nordOuestTracking": "NO-71697752",
+    "createdAt": "2026-09-07T22:09:08.326Z"
   },
   {
     "id": "ORD-897620",
@@ -237,21 +243,22 @@
     "shippingFee": 500,
     "total": 4400,
     "status": "pending",
-    "nordOuestTracking": "NO-70210821"
+    "nordOuestTracking": "NO-70210821",
+    "createdAt": "2026-09-07T22:11:37.647Z"
   },
   {
-    "id": "ORD-TEST-1788819840596",
-    "date": "2026-09-07T22:24:00.596Z",
-    "createdAt": "2026-09-07T22:24:00.596Z",
+    "id": "ORD-TEST-1788821739120",
+    "date": "2026-09-07T22:55:39.120Z",
+    "createdAt": "2026-09-07T22:55:39.121Z",
     "customer": {
-      "name": "Test Customer",
-      "firstName": "Test",
+      "name": "Verification Customer",
+      "firstName": "Verification",
       "lastName": "Customer",
-      "phone": "0555001122",
-      "wilaya": "Algiers",
+      "phone": "0555123456",
+      "wilaya": "16 - Alger",
       "wilayaCode": "16",
       "commune": "Bab El Oued",
-      "address": "123 Rue Test",
+      "address": "123 Test Street",
       "deliveryType": "home"
     },
     "shippingCarrier": "Nord et Ouest Express",
@@ -259,17 +266,17 @@
     "items": [
       {
         "id": "PROD-1",
-        "title": "Test Summer Tee",
-        "size": "L",
-        "color": "Black",
+        "title": "Unisex Summer Graphic Tee",
         "price": 3500,
-        "quantity": 1
+        "quantity": 1,
+        "size": "M",
+        "color": "Black"
       }
     ],
     "subtotal": 3500,
     "shippingFee": 500,
     "total": 4000,
     "status": "pending",
-    "nordOuestTracking": "NO-99999999"
+    "nordOuestTracking": "NO-99998888"
   }
 ]

@@ -32,25 +32,31 @@ if (fs.existsSync(envPath)) {
 }
 
 // Guaranteed async MongoDB Connection Helper
+const FALLBACK_MONGO_URI = 'mongodb+srv://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@cluster0.hrkmjuj.mongodb.net/eclipse?retryWrites=true&w=majority&appName=Cluster0';
 let mongoPromise = null;
 let db = null;
 
 async function getDb() {
   if (db) return db;
-  const mongoUri = process.env.MONGO_URI;
+  const mongoUri = process.env.MONGO_URI || FALLBACK_MONGO_URI;
   if (!mongoUri) return null;
 
   if (!mongoPromise) {
     const { MongoClient } = require('mongodb');
-    mongoPromise = MongoClient.connect(mongoUri)
-      .then(client => {
-        db = client.db();
-        console.log('✅ Connected to MongoDB');
+    const client = new MongoClient(mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000
+    });
+    mongoPromise = client.connect()
+      .then(c => {
+        db = c.db();
+        console.log('✅ Connected to MongoDB Atlas');
         return db;
       })
       .catch(err => {
-        console.error('MongoDB connection error:', err);
+        console.error('MongoDB connection error:', err.message);
         mongoPromise = null;
+        db = null;
         return null;
       });
   }
@@ -118,6 +124,9 @@ app.all('/api/nord-ouest/*', async (req, res) => {
   try {
     const targetUrl = `${cleanBase}/${endpoint.replace(/^\/+/, '')}`;
 
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 8000) : null;
+
     const options = {
       method: req.method,
       headers: {
@@ -126,12 +135,16 @@ app.all('/api/nord-ouest/*', async (req, res) => {
         'Accept': 'application/json'
       }
     };
+    if (controller) {
+      options.signal = controller.signal;
+    }
 
     if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
       options.body = JSON.stringify(req.body);
     }
 
     const response = await fetch(targetUrl, options);
+    if (timeoutId) clearTimeout(timeoutId);
     const contentType = response.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
@@ -143,7 +156,7 @@ app.all('/api/nord-ouest/*', async (req, res) => {
     }
   } catch (error) {
     console.error('[NOEST API Proxy Error]', error.message);
-    res.status(500).json({
+    res.status(502).json({
       error: 'Failed to connect to NOEST API',
       details: error.message
     });
@@ -350,15 +363,20 @@ app.get('/api/store/orders', async (req, res) => {
 app.post('/api/store/orders', async (req, res) => {
   try {
     let incoming = [];
+    if (req.body?.order && typeof req.body.order === 'object' && req.body.order.id) {
+      incoming.push(req.body.order);
+    }
     if (Array.isArray(req.body?.orders)) {
-      incoming = req.body.orders;
-    } else if (req.body?.order && typeof req.body.order === 'object') {
-      incoming = [req.body.order];
-    } else if (req.body?.id) {
-      incoming = [req.body];
+      req.body.orders.forEach(o => {
+        if (o && o.id && !incoming.some(inc => inc.id === o.id)) {
+          incoming.push(o);
+        }
+      });
+    } else if (req.body?.id && !incoming.some(inc => inc.id === req.body.id)) {
+      incoming.push(req.body);
     }
 
-    if (!incoming.length && !Array.isArray(req.body?.orders)) {
+    if (!incoming.length) {
       return res.status(400).json({ success: false, error: 'Invalid orders data' });
     }
 

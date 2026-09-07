@@ -22,11 +22,14 @@
           if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
             await window.EclipseStore.fetchLatestOrders();
           }
-          if (window.location.hash === '#orders') {
+          const page = (window.location.hash || '').replace('#', '') || 'dashboard';
+          if (page === 'orders') {
             this.updateOrdersTable();
+          } else if (page === 'dashboard') {
+            await this.renderDashboard();
           }
         } catch (e) {}
-      }, 25000);
+      }, 15000);
     },
 
     refreshOrders: async function() {
@@ -40,19 +43,11 @@
         if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
           await window.EclipseStore.fetchLatestOrders();
         }
-        if (window.location.hash === '#orders') {
-          this.updateOrdersTable();
-        } else if (window.location.hash === '#dashboard' || !window.location.hash || window.location.hash === '#') {
-          const content = document.getElementById('admin-content');
-          if (content) {
-            content.innerHTML = `
-              <button class="admin-sidebar-expand-btn" onclick="AdminApp.toggleSidebarCollapsed()" title="Show Sidebar Menu">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M12 10l3 3-3 3"></path></svg>
-                <span>Show Menu</span>
-              </button>
-            `;
-            await this.renderDashboard(content);
-          }
+        const page = (window.location.hash || '').replace('#', '') || 'dashboard';
+        if (page === 'orders') {
+          await this.renderOrders();
+        } else if (page === 'dashboard') {
+          await this.renderDashboard();
         }
         if (window.EclipseApp && window.EclipseApp.showNotification) {
           window.EclipseApp.showNotification('Orders refreshed from database', 'success');
@@ -225,22 +220,22 @@
 
         switch (page) {
           case 'dashboard':
-            this.renderDashboard(content);
+            this.renderDashboard();
             break;
           case 'products':
-            this.renderProducts(content);
+            this.renderProducts();
             break;
           case 'orders':
-            this.renderOrders(content);
+            this.renderOrders();
             break;
           case 'norris':
-            this.renderNorris(content);
+            this.renderNorris();
             break;
           case 'settings':
-            this.renderSettings(content);
+            this.renderSettings();
             break;
           default:
-            this.renderDashboard(content);
+            this.renderDashboard();
         }
       } catch (err) {
         console.error('[Admin Route Error]', err);
@@ -249,6 +244,20 @@
           content.innerHTML = `<div style="padding:40px;color:red;"><h3>Error rendering dashboard</h3><p>${err.message}</p></div>`;
         }
       }
+    },
+
+    setContent: function(pageName, html) {
+      const currentPage = (window.location.hash || '').replace('#', '') || 'dashboard';
+      if (currentPage !== pageName) return;
+      const content = document.getElementById('admin-content');
+      if (!content) return;
+      const expandBtnHtml = `
+        <button class="admin-sidebar-expand-btn" onclick="AdminApp.toggleSidebarCollapsed()" title="Show Sidebar Menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M12 10l3 3-3 3"></path></svg>
+          <span>Show Menu</span>
+        </button>
+      `;
+      content.innerHTML = expandBtnHtml + html;
     },
 
     formatDate: function(isoString) {
@@ -272,7 +281,7 @@
       return `<span class="status-badge ${badgeClass}">${text}</span>`;
     },
 
-    renderDashboard: async function(container) {
+    renderDashboard: async function() {
       if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
         await window.EclipseStore.fetchLatestOrders();
       }
@@ -402,10 +411,10 @@
           </div>
         </div>
       `;
-      container.innerHTML += html;
+      this.setContent('dashboard', html);
     },
 
-    renderProducts: async function(container) {
+    renderProducts: async function() {
       if (window.EclipseStore && typeof window.EclipseStore.fetchLatestProducts === 'function') {
         await window.EclipseStore.fetchLatestProducts();
       }
@@ -416,7 +425,7 @@
         </div>
         <div id="products-table-container"></div>
       `;
-      container.innerHTML += html;
+      this.setContent('products', html);
       this.updateProductsTable();
     },
 
@@ -848,7 +857,7 @@
       modalEl.classList.remove('modal-overlay--open', 'active');
     },
 
-    renderOrders: async function(container) {
+    renderOrders: async function() {
       if (window.EclipseStore && typeof window.EclipseStore.fetchLatestOrders === 'function') {
         await window.EclipseStore.fetchLatestOrders();
       }
@@ -870,7 +879,7 @@
         </div>
         <div id="orders-table-container"></div>
       `;
-      container.innerHTML += html;
+      this.setContent('orders', html);
       this.updateOrdersTable();
     },
 
@@ -1091,12 +1100,11 @@
       if (window.location.hash === '#orders') {
         this.updateOrdersTable();
       } else if (window.location.hash === '#dashboard' || !window.location.hash || window.location.hash === '#') {
-        const content = document.getElementById('admin-content');
-        if (content) this.renderDashboard(content);
+        this.renderDashboard();
       }
     },
 
-    renderNorris: function(container) {
+    renderNorris: function() {
       const s = window.EclipseStore.getSettings();
 
       const html = `
@@ -1123,7 +1131,7 @@
           </div>
         </div>
       `;
-      container.innerHTML += html;
+      this.setContent('norris', html);
     },
 
     saveLogisticsSettings: function() {
@@ -1147,7 +1155,7 @@
     },
 
 
-    renderSettings: function(container) {
+    renderSettings: function() {
       const s = window.EclipseStore.getSettings();
       const html = `
         <div class="admin-topbar">
@@ -1183,7 +1191,7 @@
           </div>
         </div>
       `;
-      container.innerHTML += html;
+      this.setContent('settings', html);
     },
 
     saveStoreSettings: function() {

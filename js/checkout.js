@@ -216,64 +216,58 @@
     submitOrder: function(e) {
       e.preventDefault();
       const btn = document.getElementById('submit-order-btn');
-      btn.textContent = 'Processing...';
-      btn.disabled = true;
+      if (btn) {
+        btn.textContent = 'Placing order...';
+        btn.disabled = true;
+      }
 
       const t = (k) => window.EclipseApp ? window.EclipseApp.t(k) : k;
 
-      setTimeout(async () => {
-        const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-        const addressVal = document.getElementById('shipping-address')?.value || '';
-        const nowIso = new Date().toISOString();
-        const wilayaSelect = document.getElementById('shipping-wilaya');
-        const selectedWilayaText = wilayaSelect && wilayaSelect.selectedIndex >= 0 ? wilayaSelect.options[wilayaSelect.selectedIndex].text : '';
+      const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+      const addressVal = document.getElementById('shipping-address')?.value || '';
+      const nowIso = new Date().toISOString();
+      const wilayaSelect = document.getElementById('shipping-wilaya');
+      const selectedWilayaText = wilayaSelect && wilayaSelect.selectedIndex >= 0 ? wilayaSelect.options[wilayaSelect.selectedIndex].text : '';
 
-        const orderData = {
-          id: orderId,
-          date: nowIso,
-          createdAt: nowIso,
-          customer: {
-            name: document.getElementById('shipping-name')?.value || '',
-            firstName: (document.getElementById('shipping-name')?.value || '').split(' ')[0] || '',
-            lastName: (document.getElementById('shipping-name')?.value || '').split(' ').slice(1).join(' ') || '',
-            phone: document.getElementById('shipping-phone')?.value || '',
-            wilaya: selectedWilayaText,
-            wilayaCode: wilayaSelect?.value || '',
-            commune: document.getElementById('shipping-commune')?.value || '',
-            address: this.deliveryMode === 'desk' ? (addressVal || 'Stop Desk (Pickup at Agency)') : addressVal,
-            deliveryType: this.deliveryMode
-          },
-          shippingCarrier: 'Nord et Ouest Express',
-          deliveryMode: this.deliveryMode,
-          items: window.EclipseStore.getCart(),
-          subtotal: window.EclipseStore.getCartTotal(),
-          shippingFee: this.shippingFee,
-          total: window.EclipseStore.getCartTotal() + this.shippingFee,
-          status: 'pending',
-          nordOuestTracking: 'NO-' + Math.floor(10000000 + Math.random() * 90000000)
-        };
+      const orderData = {
+        id: orderId,
+        date: nowIso,
+        createdAt: nowIso,
+        customer: {
+          name: document.getElementById('shipping-name')?.value || '',
+          firstName: (document.getElementById('shipping-name')?.value || '').split(' ')[0] || '',
+          lastName: (document.getElementById('shipping-name')?.value || '').split(' ').slice(1).join(' ') || '',
+          phone: document.getElementById('shipping-phone')?.value || '',
+          wilaya: selectedWilayaText,
+          wilayaCode: wilayaSelect?.value || '',
+          commune: document.getElementById('shipping-commune')?.value || '',
+          address: this.deliveryMode === 'desk' ? (addressVal || 'Stop Desk (Pickup at Agency)') : addressVal,
+          deliveryType: this.deliveryMode
+        },
+        shippingCarrier: 'Nord et Ouest Express',
+        deliveryMode: this.deliveryMode,
+        items: (window.EclipseStore.getCart() || []).filter(Boolean),
+        subtotal: window.EclipseStore.getCartTotal(),
+        shippingFee: this.shippingFee,
+        total: window.EclipseStore.getCartTotal() + this.shippingFee,
+        status: 'pending',
+        nordOuestTracking: 'NO-' + Math.floor(10000000 + Math.random() * 90000000)
+      };
 
-        // Dispatch parcel automatically to Nord et Ouest API
-        if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
-          try {
-            const parcelResult = await window.NordOuestAPI.createParcel(orderData);
-            if (parcelResult && parcelResult.trackingNumber) {
-              orderData.nordOuestTracking = parcelResult.trackingNumber;
-            }
-          } catch(err) {
-            console.error('[NOEST API Dispatch Error]', err);
-          }
-        }
+      // 1. Immediately save order locally and start async sync to database
+      window.EclipseStore.saveOrder(orderData).then(res => {
+        console.log('[Order Saved Status]', res);
+      }).catch(err => {
+        console.warn('[Order Save Warning]', err);
+      });
 
-        // Guarantee order is stored locally and synced to MongoDB Atlas
-        try {
-          await window.EclipseStore.saveOrder(orderData);
-        } catch(err) {
-          console.warn('[Checkout Save Order Warning]', err);
-        }
-        window.EclipseStore.clearCart();
+      // 2. Clear customer cart immediately
+      window.EclipseStore.clearCart();
 
-        document.getElementById('checkout-container').innerHTML = `
+      // 3. Immediately show confirmation screen! No delay, no blocking!
+      const container = document.getElementById('checkout-container');
+      if (container) {
+        container.innerHTML = `
           <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px;">
             <div style="font-size: 64px; margin-bottom: 24px;">📦</div>
             <h1 style="font-family: var(--font-display); font-size: 32px; font-weight: 900; text-transform: uppercase; margin-bottom: 16px;">${t('orderConfirmed')}</h1>
@@ -284,7 +278,19 @@
             <a href="/shop.html" class="btn btn--primary btn--lg">${t('continueShopping')}</a>
           </div>
         `;
-      }, 1200);
+      }
+
+      // 4. Background NOEST parcel dispatch (non-blocking)
+      if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
+        window.NordOuestAPI.createParcel(orderData).then(parcelResult => {
+          if (parcelResult && parcelResult.trackingNumber) {
+            orderData.nordOuestTracking = parcelResult.trackingNumber;
+            window.EclipseStore.saveOrder(orderData);
+          }
+        }).catch(err => {
+          console.warn('[NOEST Background Dispatch Info]', err.message || err);
+        });
+      }
     }
   };
 
