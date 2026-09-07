@@ -1,6 +1,14 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const dns = require('dns');
+
+// Configure reliable public DNS servers for MongoDB SRV record resolution (fixes querySrv ECONNREFUSED)
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('[DNS Config Warning]', e.message);
+}
 
 const ROOT_DIR = process.cwd();
 
@@ -264,29 +272,46 @@ app.post('/api/admin/change-password', async (req, res) => {
 
 // ─── Products API Persistence ───────────────────────────────────────
 app.get('/api/store/products', async (req, res) => {
-  const activeDb = await getDb();
-  let products = null;
-  if (activeDb) {
-    const doc = await activeDb.collection('store').findOne({ _id: 'products' });
-    products = doc ? doc.data : null;
-  } else {
-    products = readJsonFile('products.json', null);
+  try {
+    const activeDb = await getDb();
+    let products = null;
+    if (activeDb) {
+      const doc = await activeDb.collection('store').findOne({ _id: 'products' });
+      products = doc ? doc.data : null;
+    } else {
+      products = readJsonFile('products.json', null);
+    }
+    res.json({ success: true, products });
+  } catch (err) {
+    console.error('[Get Products Error]', err);
+    const fallbackProducts = readJsonFile('products.json', null);
+    res.json({ success: true, products: fallbackProducts });
   }
-  res.json({ success: true, products });
 });
 
 app.post('/api/store/products', async (req, res) => {
-  const { products } = req.body || {};
-  if (Array.isArray(products)) {
-    const activeDb = await getDb();
-    if (activeDb) {
-      await activeDb.collection('store').updateOne({ _id: 'products' }, { $set: { data: products } }, { upsert: true });
-    } else {
-      writeJsonFile('products.json', products);
+  try {
+    const { products } = req.body || {};
+    if (Array.isArray(products)) {
+      const activeDb = await getDb();
+      if (activeDb) {
+        await activeDb.collection('store').updateOne(
+          { _id: 'products' }, 
+          { $set: { data: products, updatedAt: new Date().toISOString() } }, 
+          { upsert: true }
+        );
+        console.log(`[Store Products] Successfully saved ${products.length} products to MongoDB.`);
+      } else {
+        writeJsonFile('products.json', products);
+        console.warn(`[Store Products] Saved ${products.length} products to local file (MongoDB offline).`);
+      }
+      return res.json({ success: true, count: products.length });
     }
-    return res.json({ success: true, count: products.length });
+    return res.status(400).json({ success: false, error: 'Invalid products data' });
+  } catch (err) {
+    console.error('[Store Products Save Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
-  return res.status(400).json({ success: false, error: 'Invalid products data' });
 });
 
 // ─── Orders API Persistence ─────────────────────────────────────────

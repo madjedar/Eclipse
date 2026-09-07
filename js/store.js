@@ -5,7 +5,11 @@
   }
 
   function setData(key, val) {
-    localStorage.setItem(key, JSON.stringify(val));
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) {
+      console.warn('[Storage Quota/Save Warning]', e);
+    }
   }
 
   function syncToServer(endpoint, payload) {
@@ -46,7 +50,7 @@
     getProduct: function(id) {
       return this.getProducts().find(p => p.id === id);
     },
-    saveProduct: function(product) {
+    saveProduct: async function(product) {
       let products = this.getProducts();
       const idx = products.findIndex(p => p.id === product.id);
       if (idx >= 0) {
@@ -55,12 +59,42 @@
         products.push(product);
       }
       setData('eclipse_products', products);
-      syncToServer('/api/store/products', { products });
+
+      try {
+        const res = await fetch('/api/store/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return { success: true, count: data.count };
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.error('[Save Product Server Error]', res.status, errData);
+          return { success: false, error: errData.error || `Server status ${res.status}` };
+        }
+      } catch (err) {
+        console.error('[Save Product Network Error]', err);
+        return { success: false, error: err.message };
+      }
     },
-    deleteProduct: function(id) {
+    deleteProduct: async function(id) {
       let products = this.getProducts().filter(p => p.id !== id);
       setData('eclipse_products', products);
-      syncToServer('/api/store/products', { products });
+      try {
+        const res = await fetch('/api/store/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products })
+        });
+        if (res.ok) {
+          return { success: true };
+        }
+      } catch (e) {
+        console.error('[Delete Product Sync Error]', e);
+      }
+      return { success: true };
     },
 
     // CART

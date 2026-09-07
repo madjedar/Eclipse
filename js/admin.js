@@ -341,7 +341,10 @@
       container.innerHTML += html;
     },
 
-    renderProducts: function(container) {
+    renderProducts: async function(container) {
+      if (window.EclipseStore && typeof window.EclipseStore.fetchLatestProducts === 'function') {
+        await window.EclipseStore.fetchLatestProducts();
+      }
       const html = `
         <div class="admin-topbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
           <h1 class="admin-topbar__title">Products</h1>
@@ -408,11 +411,11 @@
       `;
     },
 
-    deleteProduct: function(id) {
+    deleteProduct: async function(id) {
       if(confirm('Are you sure you want to delete this product?')) {
-        window.EclipseStore.deleteProduct(id);
+        await window.EclipseStore.deleteProduct(id);
         if (window.EclipseApp && window.EclipseApp.showNotification) {
-          window.EclipseApp.showNotification('Product deleted', 'success');
+          window.EclipseApp.showNotification('Product deleted from database', 'success');
         } else {
           alert('Product deleted');
         }
@@ -606,18 +609,71 @@
       }
     },
 
-    handleImageUpload: function(e) {
+    compressImage: function(file, maxWidth = 1000, maxHeight = 1300, quality = 0.78) {
+      return new Promise((resolve) => {
+        if (!file || !file.type.startsWith('image/')) return resolve(null);
+        if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth || height > maxHeight) {
+              const ratio = Math.min(maxWidth / width, maxHeight / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressed = canvas.toDataURL('image/jpeg', quality);
+            resolve(compressed);
+          };
+          img.onerror = () => resolve(event.target.result);
+          img.src = event.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    },
+
+    handleImageUpload: async function(e) {
       const files = e.target.files;
       if (!files || files.length === 0) return;
 
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          this.currentModalImages.push(event.target.result);
-          this.updateImagesPreview();
-        };
-        reader.readAsDataURL(file);
-      });
+      const gallery = document.getElementById('image-gallery-preview');
+      if (gallery) {
+        gallery.insertAdjacentHTML('beforeend', '<span id="upload-status" style="font-size:12px; color:#555; font-weight:600; padding:4px 8px; display:block;">Optimizing pictures for fast loading...</span>');
+      }
+
+      for (const file of Array.from(files)) {
+        try {
+          const compressed = await this.compressImage(file);
+          if (compressed) {
+            this.currentModalImages.push(compressed);
+          }
+        } catch (err) {
+          console.warn('[Image Compress Error]', err);
+        }
+      }
+
+      const statusEl = document.getElementById('upload-status');
+      if (statusEl) statusEl.remove();
+
+      this.updateImagesPreview();
+      e.target.value = '';
     },
 
     removeModalImage: function(index) {
@@ -645,12 +701,17 @@
       }
     },
 
-    saveProduct: function(e, productId) {
+    saveProduct: async function(e, productId) {
       e.preventDefault();
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Saving to database...';
+      }
 
       let finalImages = [...this.currentModalImages];
       if (finalImages.length === 0) {
-        // Fallback demo SVG if no image uploaded
         finalImages = [
           "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='800'><rect width='600' height='800' fill='%23111'/><text x='300' y='400' text-anchor='middle' fill='%23FFF' font-family='sans-serif' font-size='24' font-weight='bold'>ECLIPSE</text></svg>"
         ];
@@ -681,8 +742,9 @@
         });
       });
 
+      const existingProd = productId ? window.EclipseStore.getProduct(productId) : null;
       const newProduct = {
-        id: productId || window.EclipseApp.generateId(),
+        id: productId || (window.EclipseApp ? window.EclipseApp.generateId() : 'PROD-' + Date.now()),
         title: titleVal,
         description: descVal,
         price: priceVal,
@@ -690,15 +752,31 @@
         images: finalImages,
         colors: finalColors,
         inventory: inventoryObj,
-        createdAt: productId ? window.EclipseStore.getProduct(productId).createdAt : new Date().toISOString()
+        createdAt: existingProd?.createdAt || new Date().toISOString()
       };
 
-      window.EclipseStore.saveProduct(newProduct);
-      this.closeProductModal();
-      if (window.EclipseApp && window.EclipseApp.showNotification) {
-        window.EclipseApp.showNotification(productId ? 'Product updated successfully' : 'Product added successfully', 'success');
+      try {
+        const res = await window.EclipseStore.saveProduct(newProduct);
+        this.closeProductModal();
+        if (window.EclipseApp && window.EclipseApp.showNotification) {
+          if (res && res.success) {
+            window.EclipseApp.showNotification(productId ? 'Product updated in database!' : 'Product saved to database permanently!', 'success');
+          } else {
+            window.EclipseApp.showNotification('Product saved locally (database warning: ' + (res?.error || 'check connection') + ')', 'warning');
+          }
+        }
+        this.updateProductsTable();
+      } catch (err) {
+        console.error('[Save Product Error]', err);
+        if (window.EclipseApp && window.EclipseApp.showNotification) {
+          window.EclipseApp.showNotification('Error saving product: ' + err.message, 'error');
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = productId ? 'Update Product' : 'Add Product';
+        }
       }
-      this.updateProductsTable();
     },
 
     closeProductModal: function() {
