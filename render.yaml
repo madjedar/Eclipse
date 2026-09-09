@@ -8,3 +8,5 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: MONGO_URI
+        value: mongodb+srv://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@cluster0.hrkmjuj.mongodb.net/eclipse?retryWrites=true&w=majority&appName=Cluster0

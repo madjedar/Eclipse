@@ -223,7 +223,7 @@
 
       const t = (k) => window.EclipseApp ? window.EclipseApp.t(k) : k;
 
-      const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+      const orderId = 'ORD-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
       const addressVal = document.getElementById('shipping-address')?.value || '';
       const nowIso = new Date().toISOString();
       const wilayaSelect = document.getElementById('shipping-wilaya');
@@ -251,7 +251,7 @@
         shippingFee: this.shippingFee,
         total: window.EclipseStore.getCartTotal() + this.shippingFee,
         status: 'pending',
-        nordOuestTracking: 'NO-' + Math.floor(10000000 + Math.random() * 90000000)
+        nordOuestTracking: '' // Will be populated by NOEST API after dispatch
       };
 
       // 1. Immediately save order locally and start async sync to database

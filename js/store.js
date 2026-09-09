@@ -1,7 +1,14 @@
 (function(window) {
   function getData(key) {
     const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.warn('[Storage Parse Warning] Corrupt data for key:', key, '— resetting.');
+      localStorage.removeItem(key);
+      return null;
+    }
   }
 
   function setData(key, val) {
@@ -20,10 +27,12 @@
         body: JSON.stringify(payload)
       }).then(res => {
         if (!res.ok) {
-          console.error('[Sync Error]', endpoint, res.status, res.statusText);
+          console.warn('[Sync Warning]', endpoint, res.status, res.statusText);
         }
-      }).catch(err => console.error('[Sync Error]', endpoint, err));
-    } catch(e) {}
+      }).catch(err => console.warn('[Sync Warning]', endpoint, err.message));
+    } catch(e) {
+      console.warn('[Sync Warning] Could not initiate request:', endpoint, e.message);
+    }
   }
 
   const EclipseStore = {
@@ -89,12 +98,17 @@
           body: JSON.stringify({ products })
         });
         if (res.ok) {
-          return { success: true };
+          const data = await res.json().catch(() => ({}));
+          return { success: true, count: data.count };
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.error('[Delete Product Server Error]', res.status, errData);
+          return { success: false, error: errData.error || `Server status ${res.status}` };
         }
       } catch (e) {
         console.error('[Delete Product Sync Error]', e);
+        return { success: false, error: e.message };
       }
-      return { success: true };
     },
 
     // CART

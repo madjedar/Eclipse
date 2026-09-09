@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const featuredGrid = document.getElementById('featured-grid');
   
   if (featuredGrid && products) {
-    const featuredProducts = products.slice(0, 4);
+    const sortedProducts = [...products].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const featuredProducts = sortedProducts.slice(0, 4);
     featuredGrid.innerHTML = featuredProducts.map((p, index) => {
       const badges = ['LIMITED BATCH', 'UNISEX FIT', 'NEW DROP', 'SUMMER ESSENTIAL'];
       const badgeText = badges[index % badges.length];

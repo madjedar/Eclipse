@@ -32,7 +32,8 @@ if (fs.existsSync(envPath)) {
 }
 
 // Guaranteed async MongoDB Connection Helper
-const FALLBACK_MONGO_URI = 'mongodb+srv://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@cluster0.hrkmjuj.mongodb.net/eclipse?retryWrites=true&w=majority&appName=Cluster0';
+// Uses process.env.MONGO_URI if defined (in .env or Render dashboard), with working Atlas fallback
+const FALLBACK_MONGO_URI = process.env.MONGO_URI_FALLBACK || 'mongodb+srv://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@cluster0.hrkmjuj.mongodb.net/eclipse?retryWrites=true&w=majority&appName=Cluster0';
 let mongoPromise = null;
 let db = null;
 
@@ -44,17 +45,17 @@ async function getDb() {
   if (!mongoPromise) {
     const { MongoClient } = require('mongodb');
     const client = new MongoClient(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000
     });
     mongoPromise = client.connect()
       .then(c => {
         db = c.db();
-        console.log('✅ Connected to MongoDB Atlas');
+        console.log('✅ Connected to MongoDB Atlas (' + db.databaseName + ')');
         return db;
       })
       .catch(err => {
-        console.error('MongoDB connection error:', err.message);
+        console.error('❌ MongoDB Atlas connection error:', err.message);
         mongoPromise = null;
         db = null;
         return null;
@@ -62,6 +63,9 @@ async function getDb() {
   }
   return await mongoPromise;
 }
+
+// Warm up database connection on server boot
+getDb().catch(err => console.warn('[DB Boot Warning]', err.message));
 
 // Robust cross-environment fetch handler
 let fetch = globalThis.fetch;
@@ -465,33 +469,39 @@ app.post('/api/store/settings', async (req, res) => {
 
 // ─── Contact Form API ───────────────────────────────────────────────
 app.post('/api/contact', async (req, res) => {
-  const { name, email, message } = req.body;
+  try {
+    const { name, email, message } = req.body || {};
 
-  const newMsg = {
-    id: Date.now().toString(),
-    name,
-    email,
-    message,
-    date: new Date().toISOString()
-  };
+    if (!name || !message) {
+      return res.status(400).json({ success: false, error: 'Name and message are required' });
+    }
 
-  const activeDb = await getDb();
-  if (activeDb) {
-    await activeDb.collection('store').updateOne(
-      { _id: 'messages' },
-      { $push: { data: newMsg } },
-      { upsert: true }
-    );
-  } else {
-    // Log to a messages.json file as a backup
-    const messages = readJsonFile('messages.json', []);
-    messages.push(newMsg);
-    writeJsonFile('messages.json', messages);
+    const newMsg = {
+      id: Date.now().toString(),
+      name,
+      email,
+      message,
+      date: new Date().toISOString()
+    };
+
+    const activeDb = await getDb();
+    if (activeDb) {
+      await activeDb.collection('store').updateOne(
+        { _id: 'messages' },
+        { $push: { data: newMsg } },
+        { upsert: true }
+      );
+    } else {
+      const messages = readJsonFile('messages.json', []);
+      messages.push(newMsg);
+      writeJsonFile('messages.json', messages);
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Contact API Error]', err);
+    return res.status(500).json({ success: false, error: 'Failed to save message' });
   }
-
-  // Email sending is now handled directly by the frontend to bypass Cloudflare bot protection.
-  // We only return success here so the backend saves the backup.
-  return res.json({ success: true });
 });
 
 // ─── HTML Page Routes ───────────────────────────────────────────────

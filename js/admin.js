@@ -10,7 +10,8 @@
 
       this.bindEvents();
       this.initRouter();
-      this.startAutoPolling();
+      // NOTE: Auto-polling is started inside showDashboard(), not here,
+      // so it only runs when the admin is actually authenticated.
     },
 
     startAutoPolling: function() {
@@ -94,6 +95,8 @@
         window.location.hash = '#dashboard';
       }
       this.route(targetHash);
+      // Start polling now that the user is authenticated
+      this.startAutoPolling();
     },
 
     toggleSidebarCollapsed: function() {
@@ -169,6 +172,7 @@
 
     logout: function() {
       if (this._pollingInterval) clearInterval(this._pollingInterval);
+      this._pollingInterval = null;
       sessionStorage.removeItem('eclipse_admin_logged_in');
       window.location.hash = '';
       this.showLogin();
@@ -194,6 +198,10 @@
         if (isLoggedIn === 'true') {
           this.route(window.location.hash);
         }
+      });
+      // Clear polling interval on page unload to avoid memory leaks
+      window.addEventListener('beforeunload', () => {
+        if (this._pollingInterval) clearInterval(this._pollingInterval);
       });
     },
 
@@ -261,8 +269,9 @@
     },
 
     formatDate: function(isoString) {
-      if (!isoString) return '';
+      if (!isoString) return '—';
       const d = new Date(isoString);
+      if (isNaN(d.getTime())) return '—';
       return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     },
 
@@ -432,6 +441,7 @@
     updateProductsTable: function() {
       const container = document.getElementById('products-table-container');
       if (!container) return;
+      if (!window.EclipseStore) return;
       const products = window.EclipseStore.getProducts();
 
       container.innerHTML = `
@@ -486,9 +496,13 @@
 
     deleteProduct: async function(id) {
       if(confirm('Are you sure you want to delete this product?')) {
-        await window.EclipseStore.deleteProduct(id);
+        const res = await window.EclipseStore.deleteProduct(id);
         if (window.EclipseApp && window.EclipseApp.showNotification) {
-          window.EclipseApp.showNotification('Product deleted from database', 'success');
+          if (res && res.success) {
+            window.EclipseApp.showNotification('Product deleted from database successfully', 'success');
+          } else {
+            window.EclipseApp.showNotification('Product deleted locally (database warning: ' + (res?.error || 'could not sync') + ')', 'warning');
+          }
         } else {
           alert('Product deleted');
         }
@@ -847,7 +861,7 @@
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerText = productId ? 'Update Product' : 'Add Product';
+          submitBtn.innerText = '💾 Save Product';
         }
       }
     },
@@ -1117,7 +1131,7 @@
             <h3 style="margin-bottom:16px;">📦 NOEST Express API Settings</h3>
             <div class="form-group">
               <label class="form-label">API Base URL</label>
-              <input type="text" class="form-input" id="no-base-url" value="${s.nordOuestBaseUrl || 'https://api.yalidine.app'}">
+              <input type="text" class="form-input" id="no-base-url" value="${s.nordOuestBaseUrl || 'https://app.noest-dz.com'}">
             </div>
             <div class="form-group">
               <label class="form-label">API ID (Numeric ID from your Courier Account)</label>

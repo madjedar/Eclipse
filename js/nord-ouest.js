@@ -55,26 +55,28 @@
       const settings = window.EclipseStore.getSettings();
       const userGuid = settings.nordOuestGuid || settings.nordOuestApiSecret || '';
       
-      const productList = order.items.map(item => `${item.title} (${item.size}) x${item.quantity}`).join(', ');
+      const items = Array.isArray(order.items) ? order.items : [];
+      const productList = items.map(item => `${item.title} (${item.size}) x${item.quantity || item.qty || 1}`).join(', ');
       
       let ref = order.id || 'ECL-10001';
       if (ref.length < 5) ref = 'ECL-' + ref;
 
-      const wilayaId = parseInt(order.customer.wilayaCode, 10) || 16;
-      let phoneClean = (order.customer.phone || '').replace(/\D/g, '');
+      const customer = order.customer || {};
+      const wilayaId = parseInt(customer.wilayaCode, 10) || 16;
+      let phoneClean = (customer.phone || '').replace(/\D/g, '');
       if (phoneClean.startsWith('213')) phoneClean = '0' + phoneClean.slice(3);
 
-      const isStopDesk = (order.customer.deliveryType === 'desk' || order.customer.deliveryMode === 'desk') ? 1 : 0;
+      const isStopDesk = (customer.deliveryType === 'desk' || customer.deliveryMode === 'desk') ? 1 : 0;
       const stationCode = String(wilayaId).padStart(2, '0') + 'A';
 
       const parcelData = {
         user_guid: userGuid,
         reference: ref,
-        client: `${order.customer.firstName || order.customer.name || ''} ${order.customer.lastName || ''}`.trim() || 'Client',
+        client: `${customer.firstName || customer.name || ''} ${customer.lastName || ''}`.trim() || 'Client',
         phone: phoneClean || '0550000000',
-        adresse: order.customer.address || 'Adresse de livraison',
+        adresse: customer.address || 'Adresse de livraison',
         wilaya_id: wilayaId,
-        commune: order.customer.commune || 'Commune',
+        commune: customer.commune || 'Commune',
         montant: Number(order.total) || 0,
         produit: productList || 'Streetwear',
         type_id: 1,

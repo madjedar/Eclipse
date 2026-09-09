@@ -75,7 +75,8 @@
       name: "Name",
       message: "Message",
       sendMessage: "Send Message",
-      msgSent: "Message sent successfully! We will get back to you soon."
+      msgSent: "Message sent successfully! We will get back to you soon.",
+      size: "Size"
     },
     fr: {
       home: "Accueil",
@@ -152,7 +153,8 @@
       name: "Nom",
       message: "Message",
       sendMessage: "Envoyer le message",
-      msgSent: "Message envoyé avec succès ! Nous vous répondrons bientôt."
+      msgSent: "Message envoyé avec succès ! Nous vous répondrons bientôt.",
+      size: "Taille"
     },
     ar: {
       home: "الرئيسية",
@@ -229,7 +231,8 @@
       name: "الاسم",
       message: "الرسالة",
       sendMessage: "إرسال رسالة",
-      msgSent: "تم إرسال الرسالة بنجاح! سنرد عليك قريبًا."
+      msgSent: "تم إرسال الرسالة بنجاح! سنرد عليك قريبًا.",
+      size: "المقاس"
     }
   };
 
