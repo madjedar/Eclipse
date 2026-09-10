@@ -10,3 +10,13 @@ services:
         value: production
       - key: MONGO_URI
         value: mongodb+srv://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@cluster0.hrkmjuj.mongodb.net/eclipse?retryWrites=true&w=majority&appName=Cluster0
+      - key: MONGO_DIRECT_URI
+        value: mongodb://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@ac-epfnlmd-shard-00-00.hrkmjuj.mongodb.net:27017,ac-epfnlmd-shard-00-01.hrkmjuj.mongodb.net:27017,ac-epfnlmd-shard-00-02.hrkmjuj.mongodb.net:27017/eclipse?ssl=true&replicaSet=atlas-b0kgz3-shard-0&authSource=admin&retryWrites=true&w=majority
+      - key: ADMIN_PASSWORD
+        value: samyxsamy
+      - key: NORD_OUEST_BASE
+        value: https://app.noest-dz.com
+      - key: NORD_OUEST_API_TOKEN
+        value: uwybanjyos56WaZookzmUe0fHXTIvMtuiMi
+      - key: NORD_OUEST_GUID
+        value: N1L20U4L

@@ -1081,6 +1081,7 @@
           if (res && res.trackingNumber) {
             o.nordOuestTracking = res.trackingNumber;
             await window.EclipseStore.saveOrder(o);
+            this.updateOrdersTable();
             if (window.EclipseApp && window.EclipseApp.showNotification) {
               window.EclipseApp.showNotification('Dispatched to NOEST Express! Tracking: ' + res.trackingNumber, 'success');
             }

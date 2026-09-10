@@ -247,19 +247,105 @@
     "createdAt": "2026-09-07T22:11:37.647Z"
   },
   {
-    "id": "TEST-ORD-1234",
-    "total": 1500,
+    "id": "ORD-1789006227934-4178",
+    "date": "2026-09-10T02:10:27.934Z",
+    "createdAt": "2026-09-10T02:10:27.934Z",
     "customer": {
-      "name": "Test"
+      "name": "Jejsj",
+      "firstName": "Jejsj",
+      "lastName": "",
+      "phone": "0783298598",
+      "wilaya": "22 - Sidi Bel Abbes",
+      "wilayaCode": "22",
+      "commune": "Bedrabine El Mokrani",
+      "address": "Stop Desk (Pickup at Agency)",
+      "deliveryType": "desk"
     },
+    "shippingCarrier": "Nord et Ouest Express",
+    "deliveryMode": "desk",
     "items": [
       {
-        "id": 1,
+        "productId": "PROD-4",
+        "title": "Breezy Linen Shirt",
+        "price": 5500,
+        "size": "S",
+        "color": "White",
         "quantity": 1,
-        "title": "Item 1"
+        "image": "/img/summer1.jpg"
       }
     ],
-    "date": "2026-09-09T21:44:16.617Z",
-    "createdAt": "2026-09-09T21:44:16.617Z"
+    "subtotal": 5500,
+    "shippingFee": 500,
+    "total": 6000,
+    "status": "pending",
+    "nordOuestTracking": ""
+  },
+  {
+    "id": "ORD-1789006325915-4040",
+    "date": "2026-09-10T02:12:05.915Z",
+    "createdAt": "2026-09-10T02:12:05.915Z",
+    "customer": {
+      "name": "Samamamamam",
+      "firstName": "Samamamamam",
+      "lastName": "",
+      "phone": "0783298598",
+      "wilaya": "07 - Biskra",
+      "wilayaCode": "7",
+      "commune": "El Ghrous",
+      "address": "Stop Desk (Pickup at Agency)",
+      "deliveryType": "desk"
+    },
+    "shippingCarrier": "Nord et Ouest Express",
+    "deliveryMode": "desk",
+    "items": [
+      {
+        "productId": "ECL-5267",
+        "title": "Kaba",
+        "price": 8162,
+        "size": "S",
+        "color": "Black",
+        "quantity": 1,
+        "image": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='800'><rect width='600' height='800' fill='%23111'/><text x='300' y='400' text-anchor='middle' fill='%23FFF' font-family='sans-serif' font-size='24' font-weight='bold'>ECLIPSE</text></svg>"
+      }
+    ],
+    "subtotal": 8162,
+    "shippingFee": 600,
+    "total": 8762,
+    "status": "pending",
+    "nordOuestTracking": ""
+  },
+  {
+    "id": "ORD-1789056917590-1283",
+    "date": "2026-09-10T16:15:17.590Z",
+    "createdAt": "2026-09-10T16:15:17.590Z",
+    "customer": {
+      "name": "Eececececece",
+      "firstName": "Eececececece",
+      "lastName": "",
+      "phone": "0783298598",
+      "wilaya": "05 - Batna",
+      "wilayaCode": "5",
+      "commune": "Boumagueur",
+      "address": "Stop Desk (Pickup at Agency)",
+      "deliveryType": "desk"
+    },
+    "shippingCarrier": "Nord et Ouest Express",
+    "deliveryMode": "desk",
+    "items": [
+      {
+        "productId": "PROD-1",
+        "title": "Unisex Summer Graphic Tee",
+        "price": 3500,
+        "size": "M",
+        "color": "White",
+        "quantity": 1,
+        "image": "/img/summer1.jpg"
+      }
+    ],
+    "subtotal": 3500,
+    "shippingFee": 500,
+    "total": 4000,
+    "status": "pending",
+    "nordOuestTracking": ""
   }
 ]

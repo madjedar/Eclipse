@@ -1,7 +1,7 @@
 (function(window) {
   function getHeaders() {
-    const settings = window.EclipseStore.getSettings();
-    const token = settings.nordOuestApiToken || settings.nordOuestApiKey || '';
+    const settings = (window.EclipseStore && typeof window.EclipseStore.getSettings === 'function') ? window.EclipseStore.getSettings() : {};
+    const token = settings.nordOuestApiToken || settings.nordOuestApiKey || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
     return {
       'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json'
@@ -52,8 +52,8 @@
     },
 
     createParcel: async function(order) {
-      const settings = window.EclipseStore.getSettings();
-      const userGuid = settings.nordOuestGuid || settings.nordOuestApiSecret || '';
+      const settings = (window.EclipseStore && typeof window.EclipseStore.getSettings === 'function') ? window.EclipseStore.getSettings() : {};
+      const userGuid = settings.nordOuestGuid || settings.nordOuestApiSecret || 'N1L20U4L';
       
       const items = Array.isArray(order.items) ? order.items : [];
       const productList = items.map(item => `${item.title} (${item.size}) x${item.quantity || item.qty || 1}`).join(', ');

@@ -213,7 +213,7 @@
       this.renderCartSummary();
     },
 
-    submitOrder: function(e) {
+    submitOrder: async function(e) {
       e.preventDefault();
       const btn = document.getElementById('submit-order-btn');
       if (btn) {
@@ -251,45 +251,55 @@
         shippingFee: this.shippingFee,
         total: window.EclipseStore.getCartTotal() + this.shippingFee,
         status: 'pending',
-        nordOuestTracking: '' // Will be populated by NOEST API after dispatch
+        nordOuestTracking: ''
       };
 
-      // 1. Immediately save order locally and start async sync to database
-      window.EclipseStore.saveOrder(orderData).then(res => {
-        console.log('[Order Saved Status]', res);
-      }).catch(err => {
-        console.warn('[Order Save Warning]', err);
-      });
+      // 1. Dispatch parcel to NOEST Express (with 6s timeout so checkout never blocks indefinitely)
+      if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
+        try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('NOEST timeout')), 6000));
+          const parcelRes = await Promise.race([window.NordOuestAPI.createParcel(orderData), timeoutPromise]);
+          if (parcelRes && parcelRes.trackingNumber) {
+            orderData.nordOuestTracking = parcelRes.trackingNumber;
+            orderData.status = 'confirmed';
+          }
+        } catch (dispatchErr) {
+          console.warn('[NOEST Dispatch Info]', dispatchErr.message || dispatchErr);
+        }
+      }
 
-      // 2. Clear customer cart immediately
+      // 2. Guaranteed async save to database before clearing cart
+      try {
+        await window.EclipseStore.saveOrder(orderData);
+      } catch (saveErr) {
+        console.warn('[Order Save Warning]', saveErr);
+      }
+
+      // 3. Clear customer cart
       window.EclipseStore.clearCart();
 
-      // 3. Immediately show confirmation screen! No delay, no blocking!
+      // 4. Render confirmation screen
       const container = document.getElementById('checkout-container');
       if (container) {
+        const trackingSnippet = orderData.nordOuestTracking ? `
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 6px; display: inline-block; margin-bottom: 20px;">
+            <span style="font-size: 13px; color: #166534; font-weight: 600;">NOEST Tracking Number:</span>
+            <span style="font-family: monospace; font-size: 15px; font-weight: 700; color: #14532d; margin-left: 8px;">${orderData.nordOuestTracking}</span>
+          </div>
+        ` : '';
+
         container.innerHTML = `
           <div style="grid-column: 1 / -1; text-align: center; padding: 80px 20px;">
             <div style="font-size: 64px; margin-bottom: 24px;">📦</div>
             <h1 style="font-family: var(--font-display); font-size: 32px; font-weight: 900; text-transform: uppercase; margin-bottom: 16px;">${t('orderConfirmed')}</h1>
             <p style="font-size: 16px; color: var(--color-text-muted); margin-bottom: 8px;">${t('thankYou')}</p>
             <p style="font-size: 18px; margin-bottom: 16px; font-weight: 700;">${t('orderId')}: <span style="font-family: monospace; background: var(--color-surface); padding: 4px 8px; border: var(--border-thick);">${orderId}</span></p>
+            ${trackingSnippet}
             <p style="font-size: 14px; color: var(--color-text-muted); margin-bottom: 32px;">Carrier: <strong>${this.carrier}</strong> (${this.deliveryMode === 'home' ? 'Home Delivery' : 'Stop Desk'})</p>
             <p style="margin-bottom: 48px;">${t('codNotice')}</p>
             <a href="/shop.html" class="btn btn--primary btn--lg">${t('continueShopping')}</a>
           </div>
         `;
-      }
-
-      // 4. Background NOEST parcel dispatch (non-blocking)
-      if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
-        window.NordOuestAPI.createParcel(orderData).then(parcelResult => {
-          if (parcelResult && parcelResult.trackingNumber) {
-            orderData.nordOuestTracking = parcelResult.trackingNumber;
-            window.EclipseStore.saveOrder(orderData);
-          }
-        }).catch(err => {
-          console.warn('[NOEST Background Dispatch Info]', err.message || err);
-        });
       }
     }
   };

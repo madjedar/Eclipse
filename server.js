@@ -31,36 +31,51 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-// Guaranteed async MongoDB Connection Helper
-// Uses process.env.MONGO_URI if defined (in .env or Render dashboard), with working Atlas fallback
-const FALLBACK_MONGO_URI = process.env.MONGO_URI_FALLBACK || 'mongodb+srv://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@cluster0.hrkmjuj.mongodb.net/eclipse?retryWrites=true&w=majority&appName=Cluster0';
+// Dual-URI connection helper (SRV + Direct ReplicaSet fallback to prevent querySrv ECONNREFUSED)
+const SRV_MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@cluster0.hrkmjuj.mongodb.net/eclipse?retryWrites=true&w=majority&appName=Cluster0';
+const DIRECT_MONGO_URI = process.env.MONGO_DIRECT_URI || 'mongodb://madjedalirachedi291_db_user:Xn1j4HJXJ2f8H7uA@ac-epfnlmd-shard-00-00.hrkmjuj.mongodb.net:27017,ac-epfnlmd-shard-00-01.hrkmjuj.mongodb.net:27017,ac-epfnlmd-shard-00-02.hrkmjuj.mongodb.net:27017/eclipse?ssl=true&replicaSet=atlas-b0kgz3-shard-0&authSource=admin&retryWrites=true&w=majority';
+
 let mongoPromise = null;
 let db = null;
 
 async function getDb() {
   if (db) return db;
-  const mongoUri = process.env.MONGO_URI || FALLBACK_MONGO_URI;
-  if (!mongoUri) return null;
+  if (mongoPromise) return await mongoPromise;
 
-  if (!mongoPromise) {
+  mongoPromise = (async () => {
     const { MongoClient } = require('mongodb');
-    const client = new MongoClient(mongoUri, {
-      serverSelectionTimeoutMS: 8000,
-      connectTimeoutMS: 8000
-    });
-    mongoPromise = client.connect()
-      .then(c => {
-        db = c.db();
+    const uris = [SRV_MONGO_URI, DIRECT_MONGO_URI].filter(Boolean);
+
+    for (const uri of uris) {
+      try {
+        const isSrv = uri.startsWith('mongodb+srv');
+        console.log(`[DB] Attempting connection to MongoDB Atlas (${isSrv ? 'SRV' : 'Direct ReplicaSet'})...`);
+        const client = new MongoClient(uri, {
+          serverSelectionTimeoutMS: 5000,
+          connectTimeoutMS: 5000,
+          maxPoolSize: 10
+        });
+        await client.connect();
+        db = client.db();
         console.log('✅ Connected to MongoDB Atlas (' + db.databaseName + ')');
+
+        client.on('close', () => {
+          console.warn('⚠️ MongoDB Atlas connection closed. Reconnecting on demand.');
+          db = null;
+          mongoPromise = null;
+        });
+
         return db;
-      })
-      .catch(err => {
-        console.error('❌ MongoDB Atlas connection error:', err.message);
-        mongoPromise = null;
-        db = null;
-        return null;
-      });
-  }
+      } catch (err) {
+        console.warn('❌ MongoDB connection attempt failed (' + (uri.startsWith('mongodb+srv') ? 'SRV' : 'Direct') + '):', err.message);
+      }
+    }
+
+    console.error('❌ All MongoDB connection attempts failed. Falling back to local files.');
+    mongoPromise = null;
+    return null;
+  })();
+
   return await mongoPromise;
 }
 
@@ -118,9 +133,10 @@ app.all('/api/nord-ouest/*', async (req, res) => {
   }
 
   const rawBaseUrl = settings.nordOuestBaseUrl || process.env.NORD_OUEST_BASE || 'https://app.noest-dz.com';
-  const cleanBase = rawBaseUrl.replace(/\/+$/, '');
+  // Strip trailing slashes AND any /api/v1 or /api because incoming endpoints already begin with api/
+  const cleanBase = rawBaseUrl.replace(/\/+$/, '').replace(/\/api(\/v1)?$/i, '');
 
-  let apiToken = settings.nordOuestApiToken || settings.nordOuestApiKey || process.env.NORD_OUEST_API_TOKEN || '';
+  let apiToken = settings.nordOuestApiToken || settings.nordOuestApiKey || process.env.NORD_OUEST_API_TOKEN || 'uwybanjyos56WaZookzmUe0fHXTIvMtuiMi';
   if (req.headers['authorization']) {
     apiToken = req.headers['authorization'].replace(/^Bearer\s+/i, '');
   }
@@ -294,15 +310,22 @@ app.get('/api/store/products', async (req, res) => {
     let products = null;
     if (activeDb) {
       const doc = await activeDb.collection('store').findOne({ _id: 'products' });
-      products = doc ? doc.data : null;
-    } else {
-      products = readJsonFile('products.json', null);
+      if (doc && Array.isArray(doc.data)) {
+        products = doc.data;
+      }
     }
-    res.json({ success: true, products });
+    if (!products) {
+      const local = readJsonFile('products.json', []);
+      if (Array.isArray(local) && local.length > 0) {
+        products = local;
+      }
+    }
+    // Always return an array, NEVER null, so client never misinterprets as failure
+    res.json({ success: true, products: products || [] });
   } catch (err) {
     console.error('[Get Products Error]', err);
-    const fallbackProducts = readJsonFile('products.json', null);
-    res.json({ success: true, products: fallbackProducts });
+    const fallbackProducts = readJsonFile('products.json', []);
+    res.json({ success: true, products: fallbackProducts || [] });
   }
 });
 
