@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const dns = require('dns');
+const zlib = require('zlib');
 
 // Configure reliable public DNS servers for MongoDB SRV record resolution (fixes querySrv ECONNREFUSED)
 try {
@@ -102,10 +103,81 @@ const NORD_OUEST_GUID = process.env.NORD_OUEST_GUID || 'N1L20U4L';
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Serve static files from project root
+// ─── GZIP Compression Middleware (saves 60-80% bandwidth) ───────────
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  const originalJson = res.json;
+
+  res.send = function(body) {
+    // Only compress text-based responses above 1KB
+    if (!body || typeof body !== 'string' || body.length < 1024) {
+      return originalSend.call(this, body);
+    }
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    if (!acceptEncoding.includes('gzip')) {
+      return originalSend.call(this, body);
+    }
+    try {
+      const compressed = zlib.gzipSync(Buffer.from(body, 'utf8'), { level: 6 });
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Vary', 'Accept-Encoding');
+      return originalSend.call(this, compressed);
+    } catch (e) {
+      return originalSend.call(this, body);
+    }
+  };
+
+  res.json = function(obj) {
+    const body = JSON.stringify(obj);
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    if (body.length < 1024 || !acceptEncoding.includes('gzip')) {
+      res.setHeader('Content-Type', 'application/json');
+      return originalSend.call(this, body);
+    }
+    try {
+      const compressed = zlib.gzipSync(Buffer.from(body, 'utf8'), { level: 6 });
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Vary', 'Accept-Encoding');
+      return originalSend.call(this, compressed);
+    } catch (e) {
+      res.setHeader('Content-Type', 'application/json');
+      return originalSend.call(this, body);
+    }
+  };
+
+  next();
+});
+
+// Serve static files with aggressive caching (7-day cache for CSS/JS/images)
 app.use(express.static(ROOT_DIR, {
   extensions: ['html'],
-  index: 'index.html'
+  index: 'index.html',
+  maxAge: '7d',
+  immutable: false,
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    // HTML pages: no cache (always fresh)
+    if (ext === '.html') {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      return;
+    }
+    // Images: long cache
+    if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico'].includes(ext)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+      return;
+    }
+    // CSS/JS: cache with versioned URLs (?v=2.0.0)
+    if (['.css', '.js'].includes(ext)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+      return;
+    }
+    // JSON data: short cache
+    if (ext === '.json') {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return;
+    }
+  }
 }));
 
 // Prevent browser caching for all API routes (Safari fix)
