@@ -246,7 +246,11 @@
         },
         shippingCarrier: 'Nord et Ouest Express',
         deliveryMode: this.deliveryMode,
-        items: (window.EclipseStore.getCart() || []).filter(Boolean),
+        // Strip out the base64 image strings to prevent keepalive fetch payload limit errors (>64KB)
+        items: (window.EclipseStore.getCart() || []).filter(Boolean).map(item => {
+          const { image, ...itemWithoutImage } = item;
+          return itemWithoutImage;
+        }),
         subtotal: window.EclipseStore.getCartTotal(),
         shippingFee: this.shippingFee,
         total: window.EclipseStore.getCartTotal() + this.shippingFee,
@@ -254,11 +258,11 @@
         nordOuestTracking: ''
       };
 
-      // 1. Dispatch parcel to NOEST Express (with 6s timeout so checkout never blocks indefinitely)
+      // 1. Dispatch parcel to NOEST Express
+      // Wait for it completely without a short timeout, so we don't lose the tracking number on cold starts
       if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
         try {
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('NOEST timeout')), 6000));
-          const parcelRes = await Promise.race([window.NordOuestAPI.createParcel(orderData), timeoutPromise]);
+          const parcelRes = await window.NordOuestAPI.createParcel(orderData);
           if (parcelRes && parcelRes.trackingNumber) {
             orderData.nordOuestTracking = parcelRes.trackingNumber;
             orderData.status = 'confirmed';
