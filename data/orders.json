@@ -404,5 +404,38 @@
     "total": 2034,
     "status": "pending",
     "nordOuestTracking": "N1L-23A-20425014"
+  },
+  {
+    "id": "ORD-1789471437403-3495",
+    "date": "2026-09-15T11:23:57.403Z",
+    "createdAt": "2026-09-15T11:23:57.403Z",
+    "customer": {
+      "name": "Amine Boudiaf",
+      "firstName": "Amine",
+      "lastName": "Boudiaf",
+      "phone": "0550123456",
+      "wilaya": "16 - Alger",
+      "wilayaCode": "16",
+      "commune": "Alger Centre",
+      "address": "12 Rue Didouche Mourad",
+      "deliveryType": "home"
+    },
+    "shippingCarrier": "Nord et Ouest Express",
+    "deliveryMode": "home",
+    "items": [
+      {
+        "id": "PROD-1",
+        "title": "Unisex Summer Graphic Tee",
+        "price": 3500,
+        "size": "M",
+        "color": "Black",
+        "quantity": 1
+      }
+    ],
+    "subtotal": 3500,
+    "shippingFee": 700,
+    "total": 4200,
+    "status": "confirmed",
+    "nordOuestTracking": "N1L-23A-20495351"
   }
 ]
