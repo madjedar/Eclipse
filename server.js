@@ -149,38 +149,39 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files with aggressive caching (7-day cache for CSS/JS/images)
+// Serve static files with fast revalidation cache (60s for CSS/JS, always fresh for HTML)
 app.use(express.static(ROOT_DIR, {
   extensions: ['html'],
   index: 'index.html',
-  maxAge: '7d',
+  maxAge: '60s',
   immutable: false,
   setHeaders: (res, filePath) => {
     const ext = path.extname(filePath).toLowerCase();
-    // HTML pages: no cache (always fresh)
+    // HTML pages: no-store / no-cache (always fresh)
     if (ext === '.html') {
-      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
       return;
     }
-    // Images: long cache
+    // Images: cached
     if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico'].includes(ext)) {
-      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=86400');
       return;
     }
-    // CSS/JS: cache with versioned URLs (?v=2.0.0)
+    // CSS/JS: short revalidation cache so any updates take effect quickly
     if (['.css', '.js'].includes(ext)) {
-      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=60');
       return;
     }
     // JSON data: short cache
     if (ext === '.json') {
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Cache-Control', 'public, max-age=60');
       return;
     }
   }
 }));
 
-// Prevent browser caching for all API routes (Safari fix)
+// Prevent browser caching for all API routes (Safari/Mobile fix)
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -217,7 +218,7 @@ app.all('/api/nord-ouest/*', async (req, res) => {
     const targetUrl = `${cleanBase}/${endpoint.replace(/^\/+/, '')}`;
 
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), 8000) : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 30000) : null;
 
     const options = {
       method: req.method,
@@ -426,7 +427,23 @@ app.post('/api/store/products', async (req, res) => {
   }
 });
 
-// ─── Orders API Persistence ─────────────────────────────────────────
+// ─── Orders API Persistence & Sanitization ──────────────────────────
+function sanitizeOrder(order) {
+  if (!order || typeof order !== 'object') return order;
+  const clean = Object.assign({}, order);
+  if (Array.isArray(clean.items)) {
+    clean.items = clean.items.map(item => {
+      if (!item || typeof item !== 'object') return item;
+      const { image, images, ...rest } = item;
+      if (image && typeof image === 'string' && !image.startsWith('data:')) {
+        rest.image = image;
+      }
+      return rest;
+    });
+  }
+  return clean;
+}
+
 app.get('/api/store/orders', async (req, res) => {
   try {
     const activeDb = await getDb();
@@ -438,23 +455,25 @@ app.get('/api/store/orders', async (req, res) => {
       orders = readJsonFile('orders.json', []);
     }
 
-    // Ensure all orders have valid dates and timestamps for proper sorting
-    orders.forEach(o => {
-      if (!o) return;
-      if (!o.date && !o.createdAt) {
-        o.date = new Date().toISOString();
-        o.createdAt = o.date;
-      } else if (!o.createdAt) {
-        o.createdAt = o.date;
-      } else if (!o.date) {
-        o.date = o.createdAt;
+    // Ensure all orders have valid dates and timestamps for proper sorting, and sanitize items
+    const sanitizedOrders = (orders || []).map(o => {
+      if (!o) return null;
+      const clean = sanitizeOrder(o);
+      if (!clean.date && !clean.createdAt) {
+        clean.date = new Date().toISOString();
+        clean.createdAt = clean.date;
+      } else if (!clean.createdAt) {
+        clean.createdAt = clean.date;
+      } else if (!clean.date) {
+        clean.date = clean.createdAt;
       }
-    });
+      return clean;
+    }).filter(Boolean);
 
-    res.json({ success: true, orders });
+    res.json({ success: true, orders: sanitizedOrders });
   } catch (err) {
     console.error('[Get Orders Error]', err);
-    const fallbackOrders = readJsonFile('orders.json', []);
+    const fallbackOrders = (readJsonFile('orders.json', []) || []).map(sanitizeOrder);
     res.json({ success: true, orders: fallbackOrders });
   }
 });
@@ -463,16 +482,16 @@ app.post('/api/store/orders', async (req, res) => {
   try {
     let incoming = [];
     if (req.body?.order && typeof req.body.order === 'object' && req.body.order.id) {
-      incoming.push(req.body.order);
+      incoming.push(sanitizeOrder(req.body.order));
     }
     if (Array.isArray(req.body?.orders)) {
       req.body.orders.forEach(o => {
         if (o && o.id && !incoming.some(inc => inc.id === o.id)) {
-          incoming.push(o);
+          incoming.push(sanitizeOrder(o));
         }
       });
     } else if (req.body?.id && !incoming.some(inc => inc.id === req.body.id)) {
-      incoming.push(req.body);
+      incoming.push(sanitizeOrder(req.body));
     }
 
     if (!incoming.length) {
@@ -508,6 +527,9 @@ app.post('/api/store/orders', async (req, res) => {
         existingOrders.push(inc);
       }
     });
+
+    // Ensure all existing orders in the merged list are sanitized
+    existingOrders = existingOrders.map(sanitizeOrder);
 
     if (activeDb) {
       await activeDb.collection('store').updateOne(
@@ -605,21 +627,33 @@ const pages = ['shop', 'product', 'checkout', 'about', 'contact'];
 pages.forEach(page => {
   app.get(`/${page}`, (req, res) => {
     const file = path.join(ROOT_DIR, `${page}.html`);
-    if (fs.existsSync(file)) return res.sendFile(file);
+    if (fs.existsSync(file)) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      return res.sendFile(file);
+    }
     res.status(404).send('Page not found');
   });
 });
 
 app.get('/admin', (req, res) => {
   const file = path.join(ROOT_DIR, 'admin', 'index.html');
-  if (fs.existsSync(file)) return res.sendFile(file);
+  if (fs.existsSync(file)) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    return res.sendFile(file);
+  }
   res.status(404).send('Admin page not found');
 });
 
 // Fallback to index
 app.get('*', (req, res) => {
   const file = path.join(ROOT_DIR, 'index.html');
-  if (fs.existsSync(file)) return res.sendFile(file);
+  if (fs.existsSync(file)) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    return res.sendFile(file);
+  }
   res.status(404).send('Not found');
 });
 

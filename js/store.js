@@ -176,6 +176,7 @@
     },
 
     // ORDERS
+    _ordersCache: null,
     fetchLatestOrders: async function() {
       try {
         const res = await fetch('/api/store/orders', { cache: 'no-store' });
@@ -191,13 +192,15 @@
                 unSynced.push(loc);
               }
             });
-            setData('eclipse_orders', merged);
+            this._ordersCache = merged;
+            try {
+              setData('eclipse_orders', merged);
+            } catch(e) {}
             if (unSynced.length > 0) {
               fetch('/api/store/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orders: unSynced }),
-                keepalive: true
+                body: JSON.stringify({ orders: unSynced })
               }).catch(() => {});
             }
             return merged;
@@ -222,7 +225,12 @@
       return this.getProducts();
     },
     getOrders: function() {
-      return getData('eclipse_orders') || [];
+      if (this._ordersCache && Array.isArray(this._ordersCache) && this._ordersCache.length > 0) {
+        return this._ordersCache;
+      }
+      const local = getData('eclipse_orders') || [];
+      this._ordersCache = local;
+      return local;
     },
     getOrder: function(id) {
       return this.getOrders().find(o => o.id === id);
@@ -239,6 +247,18 @@
         order.date = order.createdAt;
       }
 
+      // Defensively strip out all base64 images from order items to guarantee lightweight payload
+      if (Array.isArray(order.items)) {
+        order.items = order.items.map(item => {
+          if (!item) return item;
+          const { image, images, ...rest } = item;
+          if (image && typeof image === 'string' && !image.startsWith('data:')) {
+            rest.image = image;
+          }
+          return rest;
+        });
+      }
+
       let orders = this.getOrders();
       const idx = orders.findIndex(o => o.id === order.id);
       if (idx >= 0) {
@@ -246,14 +266,17 @@
       } else {
         orders.push(order);
       }
-      setData('eclipse_orders', orders);
+      this._ordersCache = orders;
+      try {
+        setData('eclipse_orders', orders);
+      } catch (e) {}
 
       try {
         const res = await fetch('/api/store/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order, orders: [order] }),
-          keepalive: true
+          body: JSON.stringify({ order, orders: [order] })
+          // NO keepalive: true to prevent browser quota failure
         });
         if (res.ok) {
           const data = await res.json();

@@ -1080,6 +1080,7 @@
           const res = await window.NordOuestAPI.createParcel(o);
           if (res && res.trackingNumber) {
             o.nordOuestTracking = res.trackingNumber;
+            o.status = 'confirmed';
             await window.EclipseStore.saveOrder(o);
             this.updateOrdersTable();
             if (window.EclipseApp && window.EclipseApp.showNotification) {

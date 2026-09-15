@@ -65,24 +65,27 @@
       const wilayaId = parseInt(customer.wilayaCode, 10) || 16;
       let phoneClean = (customer.phone || '').replace(/\D/g, '');
       if (phoneClean.startsWith('213')) phoneClean = '0' + phoneClean.slice(3);
+      if (!phoneClean.startsWith('0') && phoneClean.length === 9) phoneClean = '0' + phoneClean;
 
       const isStopDesk = (customer.deliveryType === 'desk' || customer.deliveryMode === 'desk') ? 1 : 0;
       const stationCode = String(wilayaId).padStart(2, '0') + 'A';
 
+      const clientName = (customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`).trim() || 'Client';
+
       const parcelData = {
         user_guid: userGuid,
         reference: ref,
-        client: `${customer.firstName || customer.name || ''} ${customer.lastName || ''}`.trim() || 'Client',
+        client: clientName,
         phone: phoneClean || '0550000000',
-        adresse: customer.address || 'Adresse de livraison',
+        adresse: customer.address || (isStopDesk ? 'Stop Desk (Bureau Nord et Ouest)' : 'Adresse de livraison'),
         wilaya_id: wilayaId,
         commune: customer.commune || 'Commune',
-        montant: Number(order.total) || 0,
-        produit: productList || 'Streetwear',
+        montant: Math.round(Number(order.total) || 0),
+        produit: productList || 'Streetwear Eclipse',
         type_id: 1,
         stop_desk: isStopDesk,
         poids: 0.5,
-        remarque: 'Commande Eclipse Store'
+        remarque: 'Commande Eclipse ' + (order.id || '')
       };
 
       if (isStopDesk === 1) {

@@ -229,26 +229,40 @@
       const wilayaSelect = document.getElementById('shipping-wilaya');
       const selectedWilayaText = wilayaSelect && wilayaSelect.selectedIndex >= 0 ? wilayaSelect.options[wilayaSelect.selectedIndex].text : '';
 
+      // Clean customer phone: ensure standard 10-digit Algerian mobile format (e.g. 05..., 06..., 07...)
+      const rawPhone = (document.getElementById('shipping-phone')?.value || '').trim();
+      let phoneClean = rawPhone.replace(/\D/g, '');
+      if (phoneClean.startsWith('213')) phoneClean = '0' + phoneClean.slice(3);
+      if (!phoneClean.startsWith('0') && phoneClean.length === 9) phoneClean = '0' + phoneClean;
+
+      const fullName = (document.getElementById('shipping-name')?.value || '').trim();
+      const nameParts = fullName.split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       const orderData = {
         id: orderId,
         date: nowIso,
         createdAt: nowIso,
         customer: {
-          name: document.getElementById('shipping-name')?.value || '',
-          firstName: (document.getElementById('shipping-name')?.value || '').split(' ')[0] || '',
-          lastName: (document.getElementById('shipping-name')?.value || '').split(' ').slice(1).join(' ') || '',
-          phone: document.getElementById('shipping-phone')?.value || '',
+          name: fullName,
+          firstName: firstName,
+          lastName: lastName,
+          phone: phoneClean || rawPhone,
           wilaya: selectedWilayaText,
           wilayaCode: wilayaSelect?.value || '',
-          commune: document.getElementById('shipping-commune')?.value || '',
+          commune: (document.getElementById('shipping-commune')?.value || '').trim(),
           address: this.deliveryMode === 'desk' ? (addressVal || 'Stop Desk (Pickup at Agency)') : addressVal,
           deliveryType: this.deliveryMode
         },
         shippingCarrier: 'Nord et Ouest Express',
         deliveryMode: this.deliveryMode,
-        // Strip out the base64 image strings to prevent keepalive fetch payload limit errors (>64KB)
+        // Strip out any image strings to keep order payload lightweight (<1KB)
         items: (window.EclipseStore.getCart() || []).filter(Boolean).map(item => {
-          const { image, ...itemWithoutImage } = item;
+          const { image, images, ...itemWithoutImage } = item;
+          if (image && typeof image === 'string' && !image.startsWith('data:')) {
+            itemWithoutImage.image = image;
+          }
           return itemWithoutImage;
         }),
         subtotal: window.EclipseStore.getCartTotal(),
@@ -259,7 +273,6 @@
       };
 
       // 1. Dispatch parcel to NOEST Express
-      // Wait for it completely without a short timeout, so we don't lose the tracking number on cold starts
       if (window.NordOuestAPI && typeof window.NordOuestAPI.createParcel === 'function') {
         try {
           const parcelRes = await window.NordOuestAPI.createParcel(orderData);
@@ -274,9 +287,24 @@
 
       // 2. Guaranteed async save to database before clearing cart
       try {
-        await window.EclipseStore.saveOrder(orderData);
+        const saveRes = await window.EclipseStore.saveOrder(orderData);
+        if (!saveRes || !saveRes.success) {
+          console.warn('[Save Order Secondary Fallback Attempt]');
+          await fetch('/api/store/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: orderData, orders: [orderData] })
+          });
+        }
       } catch (saveErr) {
         console.warn('[Order Save Warning]', saveErr);
+        try {
+          await fetch('/api/store/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: orderData, orders: [orderData] })
+          });
+        } catch (e) {}
       }
 
       // 3. Clear customer cart
